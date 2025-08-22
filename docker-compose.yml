@@ -1,0 +1,8 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    container_name: ft_web
+    ports:
+      - "5173:5173"

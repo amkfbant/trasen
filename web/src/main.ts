@@ -1,17 +1,6 @@
 import { initGame } from "./game.js";
-import { GameState } from "@shared/types.js";
 
 const app = document.getElementById("app")!;
-
-const s: GameState = {
-  w: 800, h: 480,
-  lY: 200, rY: 200,
-  bX: 400, bY: 240,
-  vX: 5, vY: 3,
-  sL: 0, sR: 0,
-  tick: 0,
-  paused: false
-};
 
 
 function currentRoute(): string {
@@ -27,6 +16,11 @@ function render() {
 
   if (route === "/") {
     app.innerHTML = `
+      <nav>
+        <a href="#/">Home</a> | 
+        <a href="#/game">Game</a> | 
+        <a href="#/about">About</a>
+      </nav>
       <h2>Home</h2>
       <p>TypesScript compiled in Docker. You can start Pong from the <strong>Game</strong> tab.</p>
       <ul>
@@ -36,11 +30,21 @@ function render() {
     `;
   } else if (route === "/about") {
     app.innerHTML = `
+      <nav>
+        <a href="#/">Home</a> | 
+        <a href="#/game">Game</a> | 
+        <a href="#/about">About</a>
+      </nav>
       <h2>About</h2>
       <p>This SPA is built and run entirely within a Docker container.</p>
     `;
   } else if (route === "/game" || route.startsWith("/game")) {
     app.innerHTML = `
+      <nav>
+        <a href="#/">Home</a> | 
+        <a href="#/game">Game</a> | 
+        <a href="#/about">About</a>
+      </nav>
       <h2>Pong</h2>
       <canvas id="game" width="800" height="480"
         style="width:100%;max-width:800px;border:1px solid #ddd;border-radius:8px;"></canvas>
@@ -54,3 +58,6 @@ function render() {
 }
 
 window.addEventListener("hashchange", render);
+
+// 初期化時にrenderを呼び出し
+render();

@@ -29,11 +29,10 @@ describe('ft_transcendence API テスト', () => {
         url: '/'
       });
 
-      const body = global.testHelpers.expectSuccessResponse(
+      global.testHelpers.expectSuccessResponse(
         response,
         'ft_transcendence API is running!'
       );
-      expect(body.message).toBe('ft_transcendence API is running!');
     });
   });
 
@@ -147,7 +146,7 @@ describe('ft_transcendence API テスト', () => {
       });
 
       expect(user.password).not.toBe(userData.password); // 平文パスワードではない
-      expect(user.password).toMatch(/^\$2[ab]\$\d+\$/); // bcryptハッシュの形式
+      expect(user.password).toMatch(/^\$2[ab]\$\d{2}\$[./A-Za-z0-9]{53}$/); // bcryptハッシュの形式
     });
   });
 

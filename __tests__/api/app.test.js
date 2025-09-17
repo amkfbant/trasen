@@ -6,6 +6,9 @@ const testDb = mockDatabase();
 // アプリケーションの読み込み（相対パス調整）
 const app = require('../../api/app');
 
+// JWTをモック化
+const jwt = require('jsonwebtoken');
+
 describe('ft_transcendence API テスト', () => {
   // 各テスト後にアプリケーションをクローズ
   afterAll(async () => {
@@ -260,7 +263,6 @@ describe('ft_transcendence API テスト', () => {
       });
 
       const body = JSON.parse(response.body);
-      const jwt = require('jsonwebtoken');
 
       // トークンをデコード（検証なし）
       const decoded = jwt.decode(body.token);

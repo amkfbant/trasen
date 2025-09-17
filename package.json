@@ -1,0 +1,19 @@
+{
+  "name": "ft-transcendence",
+  "version": "1.0.0",
+  "description": "42 ft_transcendence project - A Pong game website",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:api": "jest --selectProjects api",
+    "test:web": "jest --selectProjects web",
+    "test:integration": "jest --selectProjects integration",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "license": "MIT"
+}

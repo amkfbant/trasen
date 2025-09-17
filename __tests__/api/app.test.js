@@ -9,6 +9,8 @@ const app = require('../../api/app');
 // JWTをモック化
 const jwt = require('jsonwebtoken');
 
+const BCRYPT_HASH_PATTERN = /^\$2[ab]\$\d{2}\$[./A-Za-z0-9]{53}$/;
+
 describe('ft_transcendence API テスト', () => {
   // 各テスト後にアプリケーションをクローズ
   afterAll(async () => {
@@ -149,7 +151,7 @@ describe('ft_transcendence API テスト', () => {
       });
 
       expect(user.password).not.toBe(userData.password); // 平文パスワードではない
-      expect(user.password).toMatch(/^\$2[ab]\$\d{2}\$[./A-Za-z0-9]{53}$/); // bcryptハッシュの形式
+      expect(user.password).toMatch(BCRYPT_HASH_PATTERN); // bcryptハッシュの形式
     });
   });
 

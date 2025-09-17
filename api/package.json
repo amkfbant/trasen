@@ -11,6 +11,7 @@
     "@fastify/cors": "^8.3.0",
     "@fastify/formbody": "^7.4.0",
     "bcrypt": "^5.1.0",
-    "jsonwebtoken": "^9.0.0"
+    "jsonwebtoken": "^9.0.0",
+    "sqlite3": "^5.1.6"
   }
 }

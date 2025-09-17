@@ -16,3 +16,5 @@ services:
     container_name: ft_api
     ports:
       - "3000:3000"
+    volumes:
+      - ./data:/usr/src/app/data

@@ -39,21 +39,6 @@ function initDatabase() {
     }
   });
 
-  // tournamentsテーブル（後で使用）
-  db.run(`
-    CREATE TABLE IF NOT EXISTS tournaments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      status TEXT DEFAULT 'pending',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `, (err) => {
-    if (err) {
-      console.error('tournamentsテーブル作成エラー:', err.message);
-    } else {
-      console.log('tournamentsテーブルを作成/確認しました');
-    }
-  });
 }
 
 module.exports = { db, initDatabase };

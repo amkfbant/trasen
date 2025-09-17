@@ -1,3 +1,6 @@
 .env
 .claude/
 data/
+node_modules/
+coverage/
+package-lock.json

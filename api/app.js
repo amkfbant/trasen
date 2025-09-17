@@ -100,9 +100,13 @@ fastify.post('/login', async (request, reply) => {
 
     // JWTトークン生成
     const jwt = require('jsonwebtoken');
+    // テスト環境では固定のシークレット、本番では環境変数を使用
+    const jwtSecret = process.env.NODE_ENV === 'test'
+      ? 'test-secret-key-for-testing-only'
+      : (process.env.JWT_SECRET || 'your-secret-key');
     const token = jwt.sign(
       { userId: user.id, username: user.username },
-      'your-secret-key', // 本来は環境変数から取得
+      jwtSecret,
       { expiresIn: '24h' }
     );
 

@@ -1,4 +1,4 @@
-.PHONY: setup install test dev clean docker-build docker-up docker-down
+.PHONY: setup install test dev clean docker-build docker-up docker-down docker-restart
 
 # 初回セットアップ
 setup: install docker-build test
@@ -34,6 +34,10 @@ docker-down:
 	@echo "🐳 Dockerコンテナを停止中..."
 	docker-compose down
 
+docker-restart: docker-down
+	@echo "🐳 Dockerコンテナを再起動中..."
+	docker-compose up -d --build
+
 # クリーンアップ
 clean:
 	@echo "🧹 クリーンアップ中..."
@@ -48,4 +52,5 @@ help:
 	@echo "  make install   - 依存関係のインストール"
 	@echo "  make test      - テスト実行"
 	@echo "  make dev       - 開発サーバー起動"
+	@echo "  make docker-restart - コンテナを停止→再ビルド→再起動"
 	@echo "  make clean     - クリーンアップ"

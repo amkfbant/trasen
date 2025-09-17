@@ -43,19 +43,22 @@ module.exports = {
       displayName: 'api',
       testMatch: ['<rootDir>/__tests__/api/**/*.test.js'],
       testEnvironment: 'node',
-      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js']
+      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js'],
+      moduleDirectories: ['node_modules', 'api/node_modules']
     },
     {
       displayName: 'web',
       testMatch: ['<rootDir>/__tests__/web/**/*.test.js'],
       testEnvironment: 'jsdom', // フロントエンド用
-      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js']
+      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js'],
+      moduleDirectories: ['node_modules', 'web/node_modules']
     },
     {
       displayName: 'integration',
       testMatch: ['<rootDir>/__tests__/integration/**/*.test.js'],
       testEnvironment: 'node',
-      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js']
+      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js'],
+      moduleDirectories: ['node_modules', 'api/node_modules', 'web/node_modules']
     }
   ]
 };

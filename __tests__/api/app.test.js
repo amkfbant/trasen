@@ -6,8 +6,9 @@ const testDb = mockDatabase();
 // アプリケーションの読み込み（相対パス調整）
 const app = require('../../api/app');
 
-// JWTをモック化
+// JWTモック化とテスト用シークレット
 const jwt = require('jsonwebtoken');
+const TEST_JWT_SECRET = 'test-secret-key-for-testing-only';
 
 const BCRYPT_HASH_PATTERN = /^\$2[ab]\$\d{2}\$[./A-Za-z0-9]{53}$/;
 
@@ -266,8 +267,8 @@ describe('ft_transcendence API テスト', () => {
 
       const body = JSON.parse(response.body);
 
-      // トークンをデコード（検証なし）
-      const decoded = jwt.decode(body.token);
+      // トークンを検証付きでデコード（署名も確認）
+      const decoded = jwt.verify(body.token, TEST_JWT_SECRET);
       expect(decoded).toHaveProperty('userId');
       expect(decoded).toHaveProperty('username', loginUser.username);
       expect(decoded).toHaveProperty('exp'); // 有効期限

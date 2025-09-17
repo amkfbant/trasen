@@ -1,4 +1,13 @@
 {
   "name": "ft-web",
-  "private": true
+  "private": true,
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "start": "http-server dist -p 5173"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "http-server": "^14.0.0"
+  }
 }

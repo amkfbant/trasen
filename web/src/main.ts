@@ -19,6 +19,7 @@ function render() {
       <nav>
         <a href="#/">Home</a> |
         <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
         <a href="#/game">Game</a> |
         <a href="#/about">About</a>
       </nav>
@@ -34,6 +35,7 @@ function render() {
       <nav>
         <a href="#/">Home</a> |
         <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
         <a href="#/game">Game</a> |
         <a href="#/about">About</a>
       </nav>
@@ -54,11 +56,38 @@ function render() {
       <div id="message" style="margin-top: 20px;"></div>
     `;
     setupRegisterForm();
+  } else if (route === "/login") {
+    app.innerHTML = `
+      <nav>
+        <a href="#/">Home</a> |
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+        <a href="#/game">Game</a> |
+        <a href="#/about">About</a>
+      </nav>
+      <h2>Login</h2>
+      <form id="loginForm">
+        <div style="margin: 10px 0;">
+          <label for="loginUsername">Username:</label><br>
+          <input type="text" id="loginUsername" name="username" required
+                 style="padding: 8px; width: 200px; margin-top: 5px;">
+        </div>
+        <div style="margin: 10px 0;">
+          <label for="loginPassword">Password:</label><br>
+          <input type="password" id="loginPassword" name="password" required
+                 style="padding: 8px; width: 200px; margin-top: 5px;">
+        </div>
+        <button type="submit" style="padding: 10px 20px; margin-top: 10px;">Login</button>
+      </form>
+      <div id="loginMessage" style="margin-top: 20px;"></div>
+    `;
+    setupLoginForm();
   } else if (route === "/about") {
     app.innerHTML = `
       <nav>
         <a href="#/">Home</a> |
         <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
         <a href="#/game">Game</a> |
         <a href="#/about">About</a>
       </nav>
@@ -70,6 +99,7 @@ function render() {
       <nav>
         <a href="#/">Home</a> |
         <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
         <a href="#/game">Game</a> |
         <a href="#/about">About</a>
       </nav>
@@ -111,6 +141,50 @@ function setupRegisterForm() {
       if (response.ok) {
         messageDiv.innerHTML = `<p style="color: green;">✅ ${data.message}</p>`;
         form.reset();
+      } else {
+        messageDiv.innerHTML = `<p style="color: red;">❌ ${data.error}</p>`;
+      }
+    } catch (error) {
+      messageDiv.innerHTML = `<p style="color: red;">❌ Network error. Please try again.</p>`;
+    }
+  });
+}
+
+// ログインフォームの設定
+function setupLoginForm() {
+  const form = document.getElementById("loginForm") as HTMLFormElement;
+  const messageDiv = document.getElementById("loginMessage") as HTMLDivElement;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+    const username = formData.get("username") as string;
+    const password = formData.get("password") as string;
+
+    try {
+      const response = await fetch("http://localhost:3000/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // ログイン成功時、トークンをlocalStorageに保存
+        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("currentUser", JSON.stringify(data.user));
+
+        messageDiv.innerHTML = `<p style="color: green;">✅ ${data.message}</p>`;
+        form.reset();
+
+        // 3秒後にゲームページに移動
+        setTimeout(() => {
+          window.location.hash = "#/game";
+        }, 1500);
       } else {
         messageDiv.innerHTML = `<p style="color: red;">❌ ${data.error}</p>`;
       }

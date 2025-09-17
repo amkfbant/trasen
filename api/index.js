@@ -5,10 +5,7 @@ fastify.register(require('@fastify/cors'), {
   origin: true
 });
 
-// JSONボディパーサーを有効化
-fastify.register(require('@fastify/formbody'));
-
-// メモリ内ユーザーストレージ（開発用）
+// メモリ上にユーザーを保存
 const users = [];
 
 // ヘルスチェック用エンドポイント

@@ -6,3 +6,13 @@ services:
     container_name: ft_web
     ports:
       - "5173:5173"
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: ft_api
+    ports:
+      - "3000:3000"

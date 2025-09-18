@@ -174,7 +174,11 @@ export class UserManagementHandlers {
   // Friends Management
   static async loadFriends(): Promise<void> {
     const userId = this.getCurrentUserId();
-    if (!userId) return;
+    if (!userId) {
+      const contentContainer = document.getElementById('friendsContent')!;
+      contentContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;">Error: You must be logged in to view friends</div>';
+      return;
+    }
 
     const contentContainer = document.getElementById('friendsContent')!;
     contentContainer.innerHTML = '<div style="text-align: center; padding: 20px;">Loading friends...</div>';
@@ -205,9 +209,82 @@ export class UserManagementHandlers {
     }
   }
 
+  static async loadFriendRequests(): Promise<void> {
+    const userId = this.getCurrentUserId();
+    if (!userId) {
+      const contentContainer = document.getElementById('friendsContent')!;
+      contentContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;">Error: You must be logged in to view friend requests</div>';
+      return;
+    }
+
+    const contentContainer = document.getElementById('friendsContent')!;
+    contentContainer.innerHTML = '<div style="text-align: center; padding: 20px;">Loading friend requests...</div>';
+
+    try {
+      const response = await fetch(`${this.API_BASE_URL}/users/${userId}/friend-requests`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load friend requests');
+      }
+
+      if (data.friendRequests.length === 0) {
+        contentContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No pending friend requests.</div>';
+        return;
+      }
+
+      contentContainer.innerHTML = `
+        <h3>Friend Requests (${data.friendRequests.length})</h3>
+        ${data.friendRequests.map((request: any) => UserManagementUI.generateFriendRequestCard(request)).join('')}
+      `;
+    } catch (error) {
+      contentContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #dc3545;">
+          Error: ${error instanceof Error ? error.message : 'Unknown error'}
+        </div>
+      `;
+    }
+  }
+
+  static async acceptFriendRequest(requestId: number): Promise<void> {
+    const userId = this.getCurrentUserId();
+    if (!userId) {
+      this.showMessage('Error: You must be logged in to accept friend requests', 'error');
+      return;
+    }
+
+    try {
+      console.log(`Accepting friend request: userId=${userId}, requestId=${requestId}`);
+      const response = await fetch(`${this.API_BASE_URL}/users/${userId}/friend-requests/${requestId}/accept`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+      console.log('Response status:', response.status);
+      console.log('Response data:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to accept friend request');
+      }
+
+      this.showMessage('Friend request accepted!', 'success');
+      this.loadFriendRequests(); // Refresh the list
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+      this.showMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  }
+
   static async sendFriendRequest(friendId: number): Promise<void> {
     const userId = this.getCurrentUserId();
-    if (!userId) return;
+    if (!userId) {
+      this.showMessage('Error: You must be logged in to send friend requests', 'error');
+      return;
+    }
 
     try {
       const response = await fetch(`${this.API_BASE_URL}/users/${userId}/friend-requests`, {
@@ -345,14 +422,18 @@ export class UserManagementHandlers {
   // Utility Methods
   private static getCurrentUserId(): number {
     const userStr = localStorage.getItem('currentUser');
+    console.log('Current user from localStorage:', userStr);
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
+        console.log('Parsed user:', user);
         return user.id;
       } catch (e) {
+        console.error('Error parsing user from localStorage:', e);
         return 0;
       }
     }
+    console.log('No user found in localStorage');
     return 0;
   }
 
@@ -446,6 +527,14 @@ document.addEventListener('click', (event) => {
       console.log(`Challenge user ${userId} to game - not implemented yet`);
     }
   }
+
+  // Handle accept friend request buttons
+  if (target.classList.contains('accept-friend-request-btn')) {
+    const requestId = parseInt(target.getAttribute('data-request-id') || '0');
+    if (requestId > 0) {
+      UserManagementHandlers.acceptFriendRequest(requestId);
+    }
+  }
 });
 (window as any).showFriendsList = () => {
   document.getElementById('friendsListBtn')!.style.background = '#007bff';
@@ -455,8 +544,7 @@ document.addEventListener('click', (event) => {
 (window as any).showFriendRequests = () => {
   document.getElementById('friendRequestsBtn')!.style.background = '#007bff';
   document.getElementById('friendsListBtn')!.style.background = '#6c757d';
-  // TODO: Implement friend requests display
-  document.getElementById('friendsContent')!.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Friend requests feature coming soon!</div>';
+  UserManagementHandlers.loadFriendRequests();
 };
 (window as any).showMatchHistory = () => {
   document.getElementById('matchHistoryBtn')!.style.background = '#007bff';

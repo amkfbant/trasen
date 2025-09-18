@@ -280,6 +280,23 @@ class UserService {
     return this._runQuery('ROLLBACK');
   }
 
+  // 友達申請一覧取得
+  async getFriendRequests(userId) {
+    return new Promise((resolve, reject) => {
+      db.all(`
+        SELECT f.id, f.user_id, f.created_at,
+               u.username, u.display_name, u.avatar_url, u.is_online
+        FROM friends f
+        JOIN users u ON f.user_id = u.id
+        WHERE f.friend_id = ? AND f.status = 'pending'
+        ORDER BY f.created_at DESC
+      `, [userId], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  }
+
   // 友達申請承認
   async acceptFriendRequest(userId, requestId) {
     try {

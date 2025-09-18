@@ -108,16 +108,34 @@ class UserController {
     }
   }
 
+  // 友達申請一覧取得
+  async getFriendRequests(request, reply) {
+    try {
+      const userId = parseInt(request.params.userId);
+      const requests = await userService.getFriendRequests(userId);
+
+      reply.send({
+        friendRequests: requests
+      });
+    } catch (error) {
+      reply.status(400).send({ error: error.message });
+    }
+  }
+
   // 友達申請承認
   async acceptFriendRequest(request, reply) {
     try {
       const userId = parseInt(request.params.userId);
       const requestId = parseInt(request.params.requestId);
 
+      console.log(`Accepting friend request: userId=${userId}, requestId=${requestId}`);
+
       const result = await userService.acceptFriendRequest(userId, requestId);
 
+      console.log('Friend request accepted successfully:', result);
       reply.send(result);
     } catch (error) {
+      console.error('Error accepting friend request:', error);
       reply.status(400).send({ error: error.message });
     }
   }

@@ -221,6 +221,36 @@ export class UserManagementUI {
     `;
   }
 
+  static generateFriendRequestCard(request: any): string {
+    const onlineStatus = request.is_online ? '🟢 Online' : '🔴 Offline';
+    const requestDate = new Date(request.created_at).toLocaleDateString();
+    const statusClass = request.is_online ? 'status-online' : 'status-offline';
+
+    return `
+      <div class="user-card">
+        <div class="card-content">
+          <div class="card-main">
+            <h4 class="card-title">
+              ${request.display_name || request.username}
+              ${request.username !== (request.display_name || request.username) ? `(@${request.username})` : ''}
+            </h4>
+            <div class="friend-request-info ${statusClass}">
+              ${onlineStatus} • Requested on ${requestDate}
+            </div>
+          </div>
+          <div class="card-actions">
+            <button data-request-id="${request.id}" class="btn btn-success btn-small accept-friend-request-btn">
+              Accept
+            </button>
+            <button data-user-id="${request.user_id}" class="btn btn-primary btn-small view-user-profile-btn">
+              Profile
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   static generateMatchHistoryEntry(match: any): string {
     const matchDate = new Date(match.played_at).toLocaleDateString();
     const isWinner = match.winner_id === getCurrentUserId();

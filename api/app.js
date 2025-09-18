@@ -28,6 +28,7 @@ fastify.get('/users/:userId/profile', userController.getProfile.bind(userControl
 fastify.put('/users/:userId/profile', userController.updateProfile.bind(userController));
 fastify.post('/users/:userId/online-status', userController.updateOnlineStatus.bind(userController));
 fastify.get('/users/:userId/friends', userController.getFriends.bind(userController));
+fastify.get('/users/:userId/friend-requests', userController.getFriendRequests.bind(userController));
 fastify.post('/users/:userId/friend-requests', userController.sendFriendRequest.bind(userController));
 fastify.post('/users/:userId/friend-requests/:requestId/accept', userController.acceptFriendRequest.bind(userController));
 fastify.get('/users/:userId/match-history', userController.getMatchHistory.bind(userController));

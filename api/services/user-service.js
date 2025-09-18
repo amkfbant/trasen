@@ -392,70 +392,91 @@ class UserService {
     });
   }
 
-  // 試合履歴記録
+  // 試合履歴記録（トークン方式対応）
   async recordMatchHistory(matchData) {
     const {
       player1_id, player2_id, player1_alias, player2_alias,
-      winner_id, player1_score, player2_score, game_type,
-      tournament_id, match_id, duration_seconds
+      winner_id, winner_alias, player1_score, player2_score, game_type,
+      tournament_id, match_id, duration_seconds, session_token_hash
     } = matchData;
 
     return new Promise((resolve, reject) => {
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
 
-        // 試合履歴記録
+        // 試合記録（新しいmatchesテーブル）
         db.run(`
-          INSERT INTO match_history (
-            player1_id, player2_id, player1_alias, player2_alias,
-            winner_id, player1_score, player2_score, game_type,
-            tournament_id, match_id, duration_seconds
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO matches (
+            tournament_id, session_token_hash, player1_alias, player2_alias,
+            player1_id, player2_id, winner_alias, winner_id,
+            player1_score, player2_score
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-          player1_id, player2_id, player1_alias, player2_alias,
-          winner_id, player1_score, player2_score, game_type,
-          tournament_id, match_id, duration_seconds
+          tournament_id, session_token_hash, player1_alias, player2_alias,
+          player1_id, player2_id, winner_alias, winner_id,
+          player1_score, player2_score
         ], function(err) {
           if (err) {
             db.run('ROLLBACK');
             return reject(err);
           }
 
-          const historyId = this.lastID;
+          const matchId = this.lastID;
 
-          // プレイヤー1の統計更新
-          const p1Result = { wins: winner_id === player1_id ? 1 : 0, losses: winner_id === player1_id ? 0 : 1 };
-          db.run(`
-            UPDATE users
-            SET wins = wins + ?, losses = losses + ?, total_games = total_games + 1
-            WHERE id = ?
-          `, [p1Result.wins, p1Result.losses, player1_id], (err) => {
-            if (err) {
-              db.run('ROLLBACK');
-              return reject(err);
-            }
-
-            // プレイヤー2の統計更新
-            const p2Result = { wins: winner_id === player2_id ? 1 : 0, losses: winner_id === player2_id ? 0 : 1 };
+          // ログインユーザーの統計更新（player1_idが存在する場合のみ）
+          if (player1_id) {
+            const p1Result = { wins: winner_id === player1_id ? 1 : 0, losses: winner_id === player1_id ? 0 : 1 };
             db.run(`
               UPDATE users
               SET wins = wins + ?, losses = losses + ?, total_games = total_games + 1
               WHERE id = ?
-            `, [p2Result.wins, p2Result.losses, player2_id], (err) => {
+            `, [p1Result.wins, p1Result.losses, player1_id], (err) => {
               if (err) {
                 db.run('ROLLBACK');
                 return reject(err);
               }
 
-              db.run('COMMIT', (err) => {
-                if (err) {
-                  db.run('ROLLBACK');
-                  return reject(err);
-                }
-                resolve({ message: 'Match history recorded', id: historyId });
-              });
+              // プレイヤー2の統計更新（player2_idが存在する場合のみ）
+              if (player2_id) {
+                const p2Result = { wins: winner_id === player2_id ? 1 : 0, losses: winner_id === player2_id ? 0 : 1 };
+                db.run(`
+                  UPDATE users
+                  SET wins = wins + ?, losses = losses + ?, total_games = total_games + 1
+                  WHERE id = ?
+                `, [p2Result.wins, p2Result.losses, player2_id], (err) => {
+                  if (err) {
+                    db.run('ROLLBACK');
+                    return reject(err);
+                  }
+
+                  db.run('COMMIT', (err) => {
+                    if (err) {
+                      db.run('ROLLBACK');
+                      return reject(err);
+                    }
+                    resolve({ message: 'Match recorded successfully', id: matchId });
+                  });
+                });
+              } else {
+                db.run('COMMIT', (err) => {
+                  if (err) {
+                    db.run('ROLLBACK');
+                    return reject(err);
+                  }
+                  resolve({ message: 'Match recorded successfully', id: matchId });
+                });
+              }
             });
-          });
+          } else {
+            // 匿名プレイヤーの場合、統計更新なし
+            db.run('COMMIT', (err) => {
+              if (err) {
+                db.run('ROLLBACK');
+                return reject(err);
+              }
+              resolve({ message: 'Match recorded successfully', id: matchId });
+            });
+          }
         });
       });
     });

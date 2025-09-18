@@ -1,200 +1,73 @@
 import { initGame } from "./game.js";
+import { currentRoute } from './router/routes.js';
+import { TournamentUI } from './components/tournament-ui.js';
+import { FormHandlers } from './components/form-handlers.js';
+import { TournamentFunctions } from './components/tournament-functions.js';
+import { TournamentGame } from './game/tournament-game.js';
 
 const app = document.getElementById("app")!;
 
+// Initialize tournament game keys
+TournamentGame.initKeys();
 
-function currentRoute(): string {
-  // ex: "#/game?x=1#foo" → "/game"
-  const raw = location.hash.replace(/^#/, "") || "/";
-  const clean = raw.split("?")[0].replace(/\/+$/, "");
-  return clean === "" ? "/" : clean;
-}
+// Expose tournament functions globally for onclick handlers
+(window as any).tournamentFunctions = TournamentFunctions;
+(window as any).loadTournamentList = () => TournamentFunctions.loadTournamentList();
+(window as any).checkPlayers = () => TournamentFunctions.checkPlayers();
+(window as any).loadTournamentDetails = () => TournamentFunctions.loadTournamentDetails();
+(window as any).resetTournamentGame = () => TournamentGame.reset();
+(window as any).endTournamentGame = () => TournamentGame.end();
 
 function render() {
-  const route = currentRoute();
-  console.log("[route]", route); // debug log
+  const { path: route, params } = currentRoute();
+  console.log("[route]", route);
 
   if (route === "/") {
-    app.innerHTML = `
-      <nav>
-        <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
-        <a href="#/game">Game</a> |
-        <a href="#/about">About</a>
-      </nav>
-      <h2>Home</h2>
-      <p>TypesScript compiled in Docker. You can start Pong from the <strong>Game</strong> tab.</p>
-      <ul>
-        <li>Left <code>W/S</code>／Right <code>↑/↓</code></li>
-        <li>Reset <code>R</code>／Stop <code>P</code></li>
-      </ul>
-    `;
+    app.innerHTML = TournamentUI.generateHomePageHTML();
   } else if (route === "/register") {
-    app.innerHTML = `
-      <nav>
-        <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
-        <a href="#/game">Game</a> |
-        <a href="#/about">About</a>
-      </nav>
-      <h2>User Registration</h2>
-      <form id="registerForm">
-        <div style="margin: 10px 0;">
-          <label for="username">Username:</label><br>
-          <input type="text" id="username" name="username" required
-                 style="padding: 8px; width: 200px; margin-top: 5px;">
-        </div>
-        <div style="margin: 10px 0;">
-          <label for="password">Password:</label><br>
-          <input type="password" id="password" name="password" required
-                 style="padding: 8px; width: 200px; margin-top: 5px;">
-        </div>
-        <button type="submit" style="padding: 10px 20px; margin-top: 10px;">Register</button>
-      </form>
-      <div id="message" style="margin-top: 20px;"></div>
-    `;
-    setupRegisterForm();
+    app.innerHTML = TournamentUI.generateRegisterPageHTML();
+    FormHandlers.setupRegisterForm();
   } else if (route === "/login") {
-    app.innerHTML = `
-      <nav>
-        <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
-        <a href="#/game">Game</a> |
-        <a href="#/about">About</a>
-      </nav>
-      <h2>Login</h2>
-      <form id="loginForm">
-        <div style="margin: 10px 0;">
-          <label for="loginUsername">Username:</label><br>
-          <input type="text" id="loginUsername" name="username" required
-                 style="padding: 8px; width: 200px; margin-top: 5px;">
-        </div>
-        <div style="margin: 10px 0;">
-          <label for="loginPassword">Password:</label><br>
-          <input type="password" id="loginPassword" name="password" required
-                 style="padding: 8px; width: 200px; margin-top: 5px;">
-        </div>
-        <button type="submit" style="padding: 10px 20px; margin-top: 10px;">Login</button>
-      </form>
-      <div id="loginMessage" style="margin-top: 20px;"></div>
-    `;
-    setupLoginForm();
+    app.innerHTML = TournamentUI.generateLoginPageHTML();
+    FormHandlers.setupLoginForm();
   } else if (route === "/about") {
-    app.innerHTML = `
-      <nav>
-        <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
-        <a href="#/game">Game</a> |
-        <a href="#/about">About</a>
-      </nav>
-      <h2>About</h2>
-      <p>This SPA is built and run entirely within a Docker container.</p>
-    `;
+    app.innerHTML = TournamentUI.generateAboutPageHTML();
   } else if (route === "/game" || route.startsWith("/game")) {
-    app.innerHTML = `
-      <nav>
-        <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
-        <a href="#/game">Game</a> |
-        <a href="#/about">About</a>
-      </nav>
-      <h2>Pong</h2>
-      <canvas id="game" width="800" height="480"
-        style="width:100%;max-width:800px;border:1px solid #ddd;border-radius:8px;"></canvas>
-      <p class="muted">Left: W/S　Right: ↑/↓　R: Reset　P: Stop</p>
-    `;
+    app.innerHTML = TournamentUI.generateGamePageHTML();
     const canvas = document.getElementById("game") as HTMLCanvasElement;
     initGame(canvas);
+  } else if (route.startsWith("/tournament-match")) {
+    const tournamentId = params.get('tournamentId');
+    const matchId = params.get('matchId');
+    const player1 = params.get('player1');
+    const player2 = params.get('player2');
+
+    if (!tournamentId || !matchId || !player1 || !player2) {
+      app.innerHTML = `
+        <nav>
+          <a href="#/tournament">← トーナメントに戻る</a>
+        </nav>
+        <div style="text-align: center; margin: 50px;">
+          <h2>❌ エラー</h2>
+          <p>試合情報が不完全です。トーナメント画面に戻ってやり直してください。</p>
+        </div>
+      `;
+      return;
+    }
+
+    app.innerHTML = TournamentUI.generateTournamentGamePageHTML(tournamentId, matchId, player1, player2);
+    const canvas = document.getElementById("tournamentGame") as HTMLCanvasElement;
+    TournamentGame.init(canvas, tournamentId, matchId, player1, player2);
+  } else if (route === "/tournament") {
+    app.innerHTML = TournamentUI.generateTournamentPageHTML();
+    FormHandlers.setupCreateTournamentForm();
+    FormHandlers.setupJoinTournamentForm();
+    TournamentFunctions.loadTournamentList();
   } else {
     app.innerHTML = `<h2>404</h2><p>Pong DEMO not found: <code>${route}</code></p>`;
   }
 }
 
-// ユーザー登録フォームの設定
-function setupRegisterForm() {
-  const form = document.getElementById("registerForm") as HTMLFormElement;
-  const messageDiv = document.getElementById("message") as HTMLDivElement;
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const formData = new FormData(form);
-    const username = formData.get("username") as string;
-    const password = formData.get("password") as string;
-
-    try {
-      const response = await fetch("http://localhost:3000/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        messageDiv.innerHTML = `<p style="color: green;">✅ ${data.message}</p>`;
-        form.reset();
-      } else {
-        messageDiv.innerHTML = `<p style="color: red;">❌ ${data.error}</p>`;
-      }
-    } catch (error) {
-      messageDiv.innerHTML = `<p style="color: red;">❌ Network error. Please try again.</p>`;
-    }
-  });
-}
-
-// ログインフォームの設定
-function setupLoginForm() {
-  const form = document.getElementById("loginForm") as HTMLFormElement;
-  const messageDiv = document.getElementById("loginMessage") as HTMLDivElement;
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const formData = new FormData(form);
-    const username = formData.get("username") as string;
-    const password = formData.get("password") as string;
-
-    try {
-      const response = await fetch("http://localhost:3000/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // ログイン成功時、トークンをlocalStorageに保存
-        localStorage.setItem("authToken", data.token);
-        localStorage.setItem("currentUser", JSON.stringify(data.user));
-
-        messageDiv.innerHTML = `<p style="color: green;">✅ ${data.message}</p>`;
-        form.reset();
-
-        // 3秒後にゲームページに移動
-        setTimeout(() => {
-          window.location.hash = "#/game";
-        }, 1500);
-      } else {
-        messageDiv.innerHTML = `<p style="color: red;">❌ ${data.error}</p>`;
-      }
-    } catch (error) {
-      messageDiv.innerHTML = `<p style="color: red;">❌ Network error. Please try again.</p>`;
-    }
-  });
-}
-
 window.addEventListener("hashchange", render);
 
-// 初期化時にrenderを呼び出し
 render();

@@ -34,15 +34,20 @@ class UserService {
       throw new Error('Search query must be at least 2 characters');
     }
 
+    // Escape LIKE wildcards: %, _, and \
+    function escapeLikePattern(str) {
+      return str.replace(/([%_\\])/g, '\\$1');
+    }
+    const likeQuery = `%${escapeLikePattern(sanitizedQuery)}%`;
     return new Promise((resolve, reject) => {
       db.all(`
         SELECT id, username, display_name, avatar_url, is_online, wins, losses, total_games
         FROM users
-        WHERE username LIKE '%' || ? || '%'
-           OR display_name LIKE '%' || ? || '%'
-           OR email LIKE '%' || ? || '%'
+        WHERE username LIKE ? ESCAPE '\\'
+           OR display_name LIKE ? ESCAPE '\\'
+           OR email LIKE ? ESCAPE '\\'
         LIMIT 20
-      `, [sanitizedQuery, sanitizedQuery, sanitizedQuery], (err, rows) => {
+      `, [likeQuery, likeQuery, likeQuery], (err, rows) => {
         if (err) reject(err);
         else resolve(rows || []);
       });
@@ -323,8 +328,10 @@ class UserService {
         `, [userId, requestData.user_id]);
       } catch (insertError) {
         // Handle unique constraint violation (if exists)
-        if (insertError.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
-            insertError.message.includes('UNIQUE constraint failed')) {
+        if (
+          insertError.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+          insertError.code === 'SQLITE_CONSTRAINT'
+        ) {
           await this._rollbackTransaction();
           throw new Error('Friend relationship already exists');
         }

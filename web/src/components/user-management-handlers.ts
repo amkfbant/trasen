@@ -418,6 +418,35 @@ export class UserManagementHandlers {
 (window as any).sendFriendRequest = (friendId: number) => UserManagementHandlers.sendFriendRequest(friendId);
 (window as any).viewUserProfile = (userId: number) => window.location.hash = `#/profile/${userId}`;
 (window as any).challengeToGame = (userId: number) => console.log(`Challenge user ${userId} to game - not implemented yet`);
+
+// Setup secure event listeners for buttons (XSS protection)
+document.addEventListener('click', (event) => {
+  const target = event.target as HTMLElement;
+
+  // Handle send friend request buttons
+  if (target.classList.contains('send-friend-request-btn')) {
+    const userId = parseInt(target.getAttribute('data-user-id') || '0');
+    if (userId > 0) {
+      UserManagementHandlers.sendFriendRequest(userId);
+    }
+  }
+
+  // Handle view profile buttons
+  if (target.classList.contains('view-user-profile-btn')) {
+    const userId = parseInt(target.getAttribute('data-user-id') || '0');
+    if (userId > 0) {
+      window.location.hash = `#/profile/${userId}`;
+    }
+  }
+
+  // Handle challenge to game buttons
+  if (target.classList.contains('challenge-to-game-btn')) {
+    const userId = parseInt(target.getAttribute('data-user-id') || '0');
+    if (userId > 0) {
+      console.log(`Challenge user ${userId} to game - not implemented yet`);
+    }
+  }
+});
 (window as any).showFriendsList = () => {
   document.getElementById('friendsListBtn')!.style.background = '#007bff';
   document.getElementById('friendRequestsBtn')!.style.background = '#6c757d';

@@ -197,7 +197,7 @@ describe('UserService', () => {
         const result = await UserService.searchUsers('al');
 
         expect(mockDb.all).toHaveBeenCalledWith(
-          expect.stringContaining('WHERE username LIKE ? OR display_name LIKE ? OR email LIKE ?'),
+          expect.stringContaining('WHERE username LIKE ? ESCAPE'),
           ['%al%', '%al%', '%al%'],
           expect.any(Function)
         );

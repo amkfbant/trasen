@@ -178,10 +178,10 @@ export class UserManagementUI {
           </div>
           ${showActions ? `
             <div class="card-actions">
-              <button onclick="sendFriendRequest(${user.id})" class="btn btn-success btn-small">
+              <button data-user-id="${user.id}" class="btn btn-success btn-small send-friend-request-btn">
                 Add Friend
               </button>
-              <button onclick="viewUserProfile(${user.id})" class="btn btn-primary btn-small">
+              <button data-user-id="${user.id}" class="btn btn-primary btn-small view-user-profile-btn">
                 View Profile
               </button>
             </div>
@@ -209,10 +209,10 @@ export class UserManagementUI {
             </div>
           </div>
           <div class="card-actions">
-            <button onclick="challengeToGame(${friend.id})" class="btn btn-warning btn-small">
+            <button data-user-id="${friend.id}" class="btn btn-warning btn-small challenge-to-game-btn">
               Challenge
             </button>
-            <button onclick="viewUserProfile(${friend.id})" class="btn btn-primary btn-small">
+            <button data-user-id="${friend.id}" class="btn btn-primary btn-small view-user-profile-btn">
               Profile
             </button>
           </div>

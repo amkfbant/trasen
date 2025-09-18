@@ -35,7 +35,7 @@ export class FormHandlers {
       const username = formData.get('username') as string;
       const password = formData.get('password') as string;
 
-      const messageDiv = document.getElementById('message')!;
+      const messageDiv = document.getElementById('loginMessage')!;
 
       try {
         const result = await ApiService.loginUser(username, password);

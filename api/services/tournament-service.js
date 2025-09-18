@@ -1,6 +1,9 @@
 const { db } = require('../database');
 
 class TournamentService {
+  constructor() {
+    this.progressLocks = new Set();
+  }
   // トーナメント作成
   async createTournament(name, maxPlayers = 4) {
     // バリデーション
@@ -305,8 +308,8 @@ class TournamentService {
               return reject(err);
             }
 
-            // 自動進行処理
-            this._autoProgressTournament(tournamentId)
+            // 自動進行処理（ロック機構付き）
+            this._safeAutoProgressTournament(tournamentId)
               .then(() => {
                 db.run('COMMIT', (commitErr) => {
                   if (commitErr) {
@@ -324,6 +327,26 @@ class TournamentService {
         );
       });
     });
+  }
+
+  // ロック機構付きトーナメント自動進行
+  async _safeAutoProgressTournament(tournamentId) {
+    const lockKey = `tournament_${tournamentId}`;
+
+    // 既に処理中の場合はスキップ
+    if (this.progressLocks.has(lockKey)) {
+      return;
+    }
+
+    // ロック取得
+    this.progressLocks.add(lockKey);
+
+    try {
+      await this._autoProgressTournament(tournamentId);
+    } finally {
+      // ロック解除
+      this.progressLocks.delete(lockKey);
+    }
   }
 
   // トーナメント自動進行（内部メソッド）

@@ -7,6 +7,7 @@ const mockUserService = {
   updateProfile: jest.fn(),
   searchUsers: jest.fn(),
   getFriends: jest.fn(),
+  getFriendRequests: jest.fn(),
   sendFriendRequest: jest.fn(),
   acceptFriendRequest: jest.fn(),
   getMatchHistory: jest.fn(),
@@ -219,6 +220,35 @@ describe('UserController', () => {
       });
     });
 
+    describe('getFriendRequests', () => {
+      test('should get friend requests successfully', async () => {
+        const mockRequests = [
+          { id: 1, user_id: 2, username: 'requester1', display_name: 'Requester One' }
+        ];
+        mockUserService.getFriendRequests.mockResolvedValue(mockRequests);
+
+        mockRequest.params = { userId: '1' };
+
+        await UserController.getFriendRequests(mockRequest, mockReply);
+
+        expect(mockUserService.getFriendRequests).toHaveBeenCalledWith(1);
+        expect(mockReply.send).toHaveBeenCalledWith({
+          friendRequests: mockRequests
+        });
+      });
+
+      test('should handle service errors', async () => {
+        mockUserService.getFriendRequests.mockRejectedValue(new Error('Database error'));
+
+        mockRequest.params = { userId: '1' };
+
+        await UserController.getFriendRequests(mockRequest, mockReply);
+
+        expect(mockReply.status).toHaveBeenCalledWith(400);
+        expect(mockReply.send).toHaveBeenCalledWith({ error: 'Database error' });
+      });
+    });
+
     describe('acceptFriendRequest', () => {
       test('should accept friend request successfully', async () => {
         mockUserService.acceptFriendRequest.mockResolvedValue({
@@ -233,6 +263,47 @@ describe('UserController', () => {
         expect(mockReply.send).toHaveBeenCalledWith({
           message: 'Friend request accepted'
         });
+      });
+
+      test('should handle service errors', async () => {
+        mockUserService.acceptFriendRequest.mockRejectedValue(new Error('Friend request not found'));
+
+        mockRequest.params = { userId: '2', requestId: '1' };
+
+        await UserController.acceptFriendRequest(mockRequest, mockReply);
+
+        expect(mockReply.status).toHaveBeenCalledWith(400);
+        expect(mockReply.send).toHaveBeenCalledWith({ error: 'Friend request not found' });
+      });
+    });
+
+    describe('updateOnlineStatus', () => {
+      test('should update online status successfully', async () => {
+        mockUserService.updateOnlineStatus.mockResolvedValue({
+          message: 'Online status updated'
+        });
+
+        mockRequest.params = { userId: '1' };
+        mockRequest.body = { isOnline: true };
+
+        await UserController.updateOnlineStatus(mockRequest, mockReply);
+
+        expect(mockUserService.updateOnlineStatus).toHaveBeenCalledWith(1, true);
+        expect(mockReply.send).toHaveBeenCalledWith({
+          message: 'Online status updated'
+        });
+      });
+
+      test('should handle service errors', async () => {
+        mockUserService.updateOnlineStatus.mockRejectedValue(new Error('Database error'));
+
+        mockRequest.params = { userId: '1' };
+        mockRequest.body = { isOnline: true };
+
+        await UserController.updateOnlineStatus(mockRequest, mockReply);
+
+        expect(mockReply.status).toHaveBeenCalledWith(400);
+        expect(mockReply.send).toHaveBeenCalledWith({ error: 'Database error' });
       });
     });
 
@@ -314,5 +385,7 @@ describe('UserController', () => {
         });
       });
     });
+
+    // Note: recordMatch tests are covered by integration tests in app.test.js
   });
 });

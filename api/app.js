@@ -306,5 +306,198 @@ fastify.get('/tournaments', async (request, reply) => {
   }
 });
 
+// トーナメント開始
+fastify.post('/tournaments/:id/start', async (request, reply) => {
+  try {
+    const { id } = request.params;
+
+    // トーナメント存在確認
+    const tournament = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM tournaments WHERE id = ? AND status = "waiting"',
+        [id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (!tournament) {
+      return reply.status(404).send({ error: 'Tournament not found or already started' });
+    }
+
+    // 参加者数確認
+    const players = await new Promise((resolve, reject) => {
+      db.all(
+        'SELECT alias FROM tournament_players WHERE tournament_id = ? ORDER BY joined_at ASC',
+        [id],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+
+    if (players.length !== 4) {
+      return reply.status(400).send({ error: 'Tournament requires exactly 4 players' });
+    }
+
+    // トーナメント状態を開始に変更
+    await new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE tournaments SET status = "in_progress", started_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [id],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+
+    // 準決勝の試合を生成
+    await new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO matches (tournament_id, round, match_number, player1_alias, player2_alias) VALUES
+         (?, 1, 1, ?, ?),
+         (?, 1, 2, ?, ?)`,
+        [id, players[0].alias, players[1].alias, id, players[2].alias, players[3].alias],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+
+    return {
+      message: 'Tournament started successfully',
+      matches: [
+        { round: 1, match: 1, player1: players[0].alias, player2: players[1].alias },
+        { round: 1, match: 2, player1: players[2].alias, player2: players[3].alias }
+      ]
+    };
+  } catch (error) {
+    console.error('Start tournament error:', error);
+    return reply.status(500).send({ error: 'Internal server error' });
+  }
+});
+
+// 試合結果記録
+fastify.post('/tournaments/:tournamentId/matches/:matchId/result', async (request, reply) => {
+  try {
+    const { tournamentId, matchId } = request.params;
+    const { winner_alias, player1_score, player2_score } = request.body;
+
+    if (!winner_alias || player1_score === undefined || player2_score === undefined) {
+      return reply.status(400).send({ error: 'Winner and scores are required' });
+    }
+
+    // 試合結果を記録
+    await new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE matches SET
+         winner_alias = ?,
+         player1_score = ?,
+         player2_score = ?,
+         status = "completed",
+         completed_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND tournament_id = ?`,
+        [winner_alias, player1_score, player2_score, matchId, tournamentId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+
+    // 同じラウンドの他の試合が完了しているかチェック
+    const currentMatch = await new Promise((resolve, reject) => {
+      db.get('SELECT round FROM matches WHERE id = ?', [matchId], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    const roundMatches = await new Promise((resolve, reject) => {
+      db.all(
+        'SELECT * FROM matches WHERE tournament_id = ? AND round = ?',
+        [tournamentId, currentMatch.round],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+
+    const allCompleted = roundMatches.every(match => match.status === 'completed');
+
+    if (allCompleted && currentMatch.round === 1) {
+      // 準決勝が全て完了したら決勝を生成
+      const winners = roundMatches.map(match => match.winner_alias);
+
+      await new Promise((resolve, reject) => {
+        db.run(
+          'INSERT INTO matches (tournament_id, round, match_number, player1_alias, player2_alias) VALUES (?, 2, 1, ?, ?)',
+          [tournamentId, winners[0], winners[1]],
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
+
+      return {
+        message: 'Match result recorded. Final match created!',
+        next_match: { round: 2, player1: winners[0], player2: winners[1] }
+      };
+    } else if (allCompleted && currentMatch.round === 2) {
+      // 決勝完了、トーナメント終了
+      await new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE tournaments SET status = "completed", completed_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [tournamentId],
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
+
+      return {
+        message: 'Tournament completed!',
+        champion: winner_alias
+      };
+    }
+
+    return { message: 'Match result recorded successfully' };
+  } catch (error) {
+    console.error('Record match result error:', error);
+    return reply.status(500).send({ error: 'Internal server error' });
+  }
+});
+
+// トーナメント詳細（試合状況含む）取得
+fastify.get('/tournaments/:id/matches', async (request, reply) => {
+  try {
+    const { id } = request.params;
+
+    const matches = await new Promise((resolve, reject) => {
+      db.all(
+        'SELECT * FROM matches WHERE tournament_id = ? ORDER BY round ASC, match_number ASC',
+        [id],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+
+    return { matches };
+  } catch (error) {
+    console.error('Get tournament matches error:', error);
+    return reply.status(500).send({ error: 'Internal server error' });
+  }
+});
+
 // fastifyインスタンスをエクスポート
 module.exports = fastify;

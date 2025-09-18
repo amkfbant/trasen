@@ -10,16 +10,24 @@ window.addEventListener("keyup", (e) => { keys[e.code] = false; });
 
 const app = document.getElementById("app")!;
 
+type RouteInfo = {
+  path: string;
+  params: URLSearchParams;
+};
 
-function currentRoute(): string {
-  // ex: "#/game?x=1#foo" → "/game"
-  const raw = location.hash.replace(/^#/, "") || "/";
-  const clean = raw.split("?")[0].replace(/\/+$/, "");
-  return clean === "" ? "/" : clean;
+function currentRoute(): RouteInfo {
+  const hash = location.hash.replace(/^#/, "") || "/";
+  const [rawPath, queryString] = hash.split("?");
+  const cleanPath = (rawPath || "/").replace(/\/+$/, "");
+
+  return {
+    path: cleanPath === "" ? "/" : cleanPath,
+    params: new URLSearchParams(queryString || ""),
+  };
 }
 
 function render() {
-  const route = currentRoute();
+  const { path: route, params } = currentRoute();
   console.log("[route]", route); // debug log
 
   if (route === "/") {
@@ -125,11 +133,25 @@ function render() {
     initGame(canvas);
   } else if (route.startsWith("/tournament-match")) {
     // トーナメント専用ゲーム画面
-    const params = new URLSearchParams(route.split('?')[1] || '');
     const tournamentId = params.get('tournamentId');
     const matchId = params.get('matchId');
     const player1 = params.get('player1');
     const player2 = params.get('player2');
+
+    // パラメータの検証
+    if (!tournamentId || !matchId || !player1 || !player2) {
+      app.innerHTML = `
+        <nav>
+          <a href="#/tournament">← トーナメントに戻る</a>
+        </nav>
+        <div style="text-align: center; margin: 50px;">
+          <h2>❌ エラー</h2>
+          <p>試合情報が不完全です。トーナメント画面に戻ってやり直してください。</p>
+          <p>Debug: tournamentId=${tournamentId}, matchId=${matchId}, player1=${player1}, player2=${player2}</p>
+        </div>
+      `;
+      return;
+    }
 
     app.innerHTML = `
       <nav>
@@ -153,7 +175,7 @@ function render() {
       </div>
     `;
     const canvas = document.getElementById("tournamentGame") as HTMLCanvasElement;
-    initTournamentGame(canvas, tournamentId!, matchId!, player1!, player2!);
+    initTournamentGame(canvas, tournamentId, matchId, player1, player2);
   } else if (route === "/tournament") {
     app.innerHTML = `
       <nav>

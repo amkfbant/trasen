@@ -1,19 +1,37 @@
 export class TournamentUI {
   static generateHomePageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>Welcome to ft_transcendence</h2>
       <p>A modern web-based Pong game with tournament system.</p>
       <ul>
-        <li><a href="#/register">ユーザー登録</a> - 新規ユーザー登録</li>
-        <li><a href="#/login">ログイン</a> - 既存ユーザーログイン</li>
+        ${!isLoggedIn ? `
+          <li><a href="#/register">ユーザー登録</a> - 新規ユーザー登録</li>
+          <li><a href="#/login">ログイン</a> - 既存ユーザーログイン</li>
+        ` : `
+          <li><a href="#/profile">プロフィール</a> - あなたのプロフィールと統計</li>
+          <li><a href="#/search">ユーザー検索</a> - 他のユーザーを検索</li>
+          <li><a href="#/friends">友達</a> - 友達リストと申請</li>
+          <li><a href="#/match-history">試合履歴</a> - あなたの試合記録</li>
+        `}
         <li><a href="#/game">ゲーム</a> - Pongゲームをプレイ</li>
         <li><a href="#/tournament">トーナメント</a> - トーナメントシステム</li>
       </ul>

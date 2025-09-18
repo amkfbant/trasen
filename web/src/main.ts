@@ -4,6 +4,8 @@ import { TournamentUI } from './components/tournament-ui.js';
 import { FormHandlers } from './components/form-handlers.js';
 import { TournamentFunctions } from './components/tournament-functions.js';
 import { TournamentGame } from './game/tournament-game.js';
+import { UserManagementUI } from './components/user-management-ui.js';
+import { UserManagementHandlers } from './components/user-management-handlers.js';
 
 const app = document.getElementById("app")!;
 
@@ -17,6 +19,12 @@ TournamentGame.initKeys();
 (window as any).loadTournamentDetails = () => TournamentFunctions.loadTournamentDetails();
 (window as any).resetTournamentGame = () => TournamentGame.reset();
 (window as any).endTournamentGame = () => TournamentGame.end();
+
+// Expose logout function
+(window as any).logout = () => {
+  localStorage.removeItem('currentUser');
+  window.location.hash = '#/';
+};
 
 function render() {
   const { path: route, params } = currentRoute();
@@ -63,6 +71,40 @@ function render() {
     FormHandlers.setupCreateTournamentForm();
     FormHandlers.setupJoinTournamentForm();
     TournamentFunctions.loadTournamentList();
+  } else if (route === "/profile") {
+    // Check if user is logged in
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) {
+      window.location.hash = '#/login';
+      return;
+    }
+    const user = JSON.parse(currentUser);
+    app.innerHTML = UserManagementUI.generateProfilePageHTML(user.id);
+    UserManagementHandlers.setupEditProfileForm();
+    UserManagementHandlers.loadUserProfile(user.id);
+  } else if (route.startsWith("/profile/")) {
+    const userId = route.split('/')[2];
+    app.innerHTML = UserManagementUI.generateProfilePageHTML(userId);
+    UserManagementHandlers.loadUserProfile(userId);
+  } else if (route === "/search") {
+    app.innerHTML = UserManagementUI.generateSearchPageHTML();
+    UserManagementHandlers.setupSearchForm();
+  } else if (route === "/friends") {
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) {
+      window.location.hash = '#/login';
+      return;
+    }
+    app.innerHTML = UserManagementUI.generateFriendsPageHTML();
+    UserManagementHandlers.loadFriends();
+  } else if (route === "/match-history") {
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) {
+      window.location.hash = '#/login';
+      return;
+    }
+    app.innerHTML = UserManagementUI.generateMatchHistoryPageHTML();
+    UserManagementHandlers.loadMatchHistory();
   } else {
     app.innerHTML = `<h2>404</h2><p>Pong DEMO not found: <code>${route}</code></p>`;
   }

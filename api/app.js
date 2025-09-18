@@ -123,5 +123,188 @@ fastify.post('/login', async (request, reply) => {
   }
 });
 
+// === トーナメント関連API ===
+
+// トーナメント作成
+fastify.post('/tournaments', async (request, reply) => {
+  try {
+    const { name } = request.body;
+
+    if (!name || name.trim().length === 0) {
+      return reply.status(400).send({ error: 'Tournament name is required' });
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO tournaments (name) VALUES (?)',
+        [name.trim()],
+        function(err) {
+          if (err) reject(err);
+          else resolve({ id: this.lastID });
+        }
+      );
+    });
+
+    return {
+      message: 'Tournament created successfully',
+      tournament: { id: result.id, name: name.trim() }
+    };
+  } catch (error) {
+    console.error('Tournament creation error:', error);
+    return reply.status(500).send({ error: 'Internal server error' });
+  }
+});
+
+// トーナメント詳細取得
+fastify.get('/tournaments/:id', async (request, reply) => {
+  try {
+    const { id } = request.params;
+
+    const tournament = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM tournaments WHERE id = ?',
+        [id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (!tournament) {
+      return reply.status(404).send({ error: 'Tournament not found' });
+    }
+
+    return { tournament };
+  } catch (error) {
+    console.error('Get tournament error:', error);
+    return reply.status(500).send({ error: 'Internal server error' });
+  }
+});
+
+// トーナメント参加（エイリアス登録）
+fastify.post('/tournaments/:id/join', async (request, reply) => {
+  try {
+    const { id } = request.params;
+    const { alias } = request.body;
+
+    if (!alias || alias.trim().length === 0) {
+      return reply.status(400).send({ error: 'Alias is required' });
+    }
+
+    // トーナメント存在確認
+    const tournament = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM tournaments WHERE id = ? AND status = "waiting"',
+        [id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (!tournament) {
+      return reply.status(404).send({ error: 'Tournament not found or not accepting players' });
+    }
+
+    // 参加者数確認
+    const playerCount = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT COUNT(*) as count FROM tournament_players WHERE tournament_id = ?',
+        [id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row.count);
+        }
+      );
+    });
+
+    if (playerCount >= tournament.max_players) {
+      return reply.status(400).send({ error: 'Tournament is full' });
+    }
+
+    // エイリアス重複確認
+    const existingAlias = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM tournament_players WHERE tournament_id = ? AND alias = ?',
+        [id, alias.trim()],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (existingAlias) {
+      return reply.status(400).send({ error: 'Alias already taken in this tournament' });
+    }
+
+    // 参加者登録
+    await new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO tournament_players (tournament_id, alias) VALUES (?, ?)',
+        [id, alias.trim()],
+        function(err) {
+          if (err) reject(err);
+          else resolve({ id: this.lastID });
+        }
+      );
+    });
+
+    return {
+      message: 'Successfully joined tournament',
+      player: { alias: alias.trim() }
+    };
+  } catch (error) {
+    console.error('Join tournament error:', error);
+    return reply.status(500).send({ error: 'Internal server error' });
+  }
+});
+
+// トーナメント参加者一覧取得
+fastify.get('/tournaments/:id/players', async (request, reply) => {
+  try {
+    const { id } = request.params;
+
+    const players = await new Promise((resolve, reject) => {
+      db.all(
+        'SELECT alias, joined_at FROM tournament_players WHERE tournament_id = ? ORDER BY joined_at ASC',
+        [id],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+
+    return { players };
+  } catch (error) {
+    console.error('Get players error:', error);
+    return reply.status(500).send({ error: 'Internal server error' });
+  }
+});
+
+// トーナメント一覧取得
+fastify.get('/tournaments', async (request, reply) => {
+  try {
+    const tournaments = await new Promise((resolve, reject) => {
+      db.all(
+        'SELECT id, name, status, max_players, created_at FROM tournaments ORDER BY created_at DESC',
+        [],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+
+    return { tournaments };
+  } catch (error) {
+    console.error('Get tournaments error:', error);
+    return reply.status(500).send({ error: 'Internal server error' });
+  }
+});
+
 // fastifyインスタンスをエクスポート
 module.exports = fastify;

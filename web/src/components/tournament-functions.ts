@@ -3,7 +3,7 @@ import { ApiService } from '../services/api-service.js';
 export class TournamentFunctions {
   static async loadTournamentList(): Promise<void> {
     try {
-      const data = await ApiService.getTournaments();
+      const data = await ApiService.getTournaments() as any;
       const listDiv = document.getElementById('tournamentList')!;
 
       if (data.tournaments.length === 0) {
@@ -49,7 +49,7 @@ export class TournamentFunctions {
     }
 
     try {
-      const data = await ApiService.getTournamentPlayers(tournamentId);
+      const data = await ApiService.getTournamentPlayers(tournamentId) as any;
       const detailsDiv = document.getElementById('tournamentDetails')!;
 
       let html = `<h4>参加者一覧 (トーナメントID: ${tournamentId})</h4>`;
@@ -82,9 +82,9 @@ export class TournamentFunctions {
     const detailsDiv = document.getElementById('tournamentDetails')!;
 
     try {
-      const tournamentData = await ApiService.getTournament(tournamentId);
-      const playersData = await ApiService.getTournamentPlayers(tournamentId);
-      const matchesData = await ApiService.getTournamentMatches(tournamentId);
+      const tournamentData = await ApiService.getTournament(tournamentId) as any;
+      const playersData = await ApiService.getTournamentPlayers(tournamentId) as any;
+      const matchesData = await ApiService.getTournamentMatches(tournamentId) as any;
 
       const tournament = tournamentData.tournament;
       const players = playersData.players;

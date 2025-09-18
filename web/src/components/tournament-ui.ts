@@ -48,6 +48,7 @@ export class TournamentUI {
           </button>
         </div>
       </form>
+      <div id="message" style="margin-top: 20px;"></div>
     `;
   }
 
@@ -79,6 +80,7 @@ export class TournamentUI {
           </button>
         </div>
       </form>
+      <div id="loginMessage" style="margin-top: 20px;"></div>
     `;
   }
 

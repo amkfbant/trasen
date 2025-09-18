@@ -1,7 +1,9 @@
 // Use environment variable for API base URL, fallback to localhost for development.
 const API_BASE_URL =
-  typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL
-    ? import.meta.env.VITE_API_BASE_URL
+  typeof import.meta !== 'undefined' &&
+  (import.meta as any).env &&
+  (import.meta as any).env.VITE_API_BASE_URL
+    ? (import.meta as any).env.VITE_API_BASE_URL
     : 'http://localhost:3000';
 
 export class ApiService {

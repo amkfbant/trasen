@@ -38,7 +38,7 @@ export class FormHandlers {
       const messageDiv = document.getElementById('loginMessage')!;
 
       try {
-        const result = await ApiService.loginUser(username, password);
+        const result = await ApiService.loginUser(username, password) as any;
         messageDiv.innerHTML = '<p style="color: green;">Login successful!</p>';
         localStorage.setItem('user', JSON.stringify(result.user));
         form.reset();
@@ -60,10 +60,10 @@ export class FormHandlers {
       const maxPlayers = parseInt(formData.get('max_players') as string);
 
       try {
-        const result = await ApiService.createTournament(name, maxPlayers);
+        const result = await ApiService.createTournament(name, maxPlayers) as any;
         alert(`Tournament created! Tournament ID: ${result.id}`);
         form.reset();
-        window.loadTournamentList();
+        (window as any).loadTournamentList();
       } catch (error) {
         alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
@@ -85,7 +85,7 @@ export class FormHandlers {
         await ApiService.joinTournament(tournamentId, alias);
         alert('Successfully joined tournament!');
         form.reset();
-        window.loadTournamentList();
+        (window as any).loadTournamentList();
       } catch (error) {
         alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }

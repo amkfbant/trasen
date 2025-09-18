@@ -1,0 +1,401 @@
+/* User Management Styles */
+
+/* Layout and Container Styles */
+.user-content-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.user-content-wide {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.user-loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+/* Navigation Styles */
+.user-nav {
+  margin-bottom: 20px;
+}
+
+.user-nav a {
+  text-decoration: none;
+  color: #0066cc;
+  margin: 0 5px;
+}
+
+.user-nav a:hover {
+  text-decoration: underline;
+}
+
+/* Button Styles */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.btn-warning {
+  background: #ffc107;
+  color: black;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-info {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-small {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.btn-group {
+  display: flex;
+  gap: 5px;
+  margin-left: 20px;
+}
+
+.btn-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* Form Styles */
+.form-group {
+  margin: 15px 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.form-input {
+  padding: 8px;
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-textarea {
+  padding: 8px;
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.search-form {
+  margin-bottom: 30px;
+}
+
+.search-input-group {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+}
+
+.search-input-container {
+  flex: 1;
+}
+
+.search-input {
+  padding: 10px;
+  width: 100%;
+  margin-top: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* Card Styles */
+.user-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 10px 0;
+  background: #f8f9fa;
+}
+
+.card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+}
+
+.card-main {
+  flex: 1;
+}
+
+.card-title {
+  margin: 0 0 10px 0;
+  color: #007bff;
+  font-size: 18px;
+}
+
+.card-status {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.card-bio {
+  margin: 10px 0;
+  font-style: italic;
+}
+
+.card-stats {
+  margin: 10px 0;
+  font-size: 14px;
+}
+
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-left: 20px;
+}
+
+/* Friend Card Specific */
+.friend-since {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Match History Styles */
+.match-entry {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 10px 0;
+  background: #f8f9fa;
+}
+
+.match-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.match-result {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.match-result.win {
+  color: #28a745;
+}
+
+.match-result.loss {
+  color: #dc3545;
+}
+
+.match-opponent {
+  font-size: 14px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.match-date {
+  font-size: 12px;
+  color: #999;
+  margin-top: 5px;
+}
+
+.match-score {
+  text-align: right;
+}
+
+.match-score-text {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.match-type {
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.match-tournament {
+  font-size: 12px;
+  color: #007bff;
+  margin-top: 2px;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+}
+
+.modal-title {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.modal-actions {
+  margin: 20px 0;
+  text-align: right;
+}
+
+/* Status Indicators */
+.status-online {
+  color: #28a745;
+}
+
+.status-offline {
+  color: #dc3545;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .user-content-container,
+  .user-content-wide {
+    padding: 10px;
+  }
+
+  .card-content {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .card-actions {
+    flex-direction: row;
+    margin-left: 0;
+  }
+
+  .btn-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .search-input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .match-content {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .match-score {
+    text-align: left;
+  }
+}
+
+/* Utility Classes */
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.mb-10 {
+  margin-bottom: 10px;
+}
+
+.mb-20 {
+  margin-bottom: 20px;
+}
+
+.mb-30 {
+  margin-bottom: 30px;
+}
+
+.mt-10 {
+  margin-top: 10px;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.gap-5 {
+  gap: 5px;
+}
+
+.gap-10 {
+  gap: 10px;
+}
+
+.gap-20 {
+  gap: 20px;
+}

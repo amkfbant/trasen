@@ -1,7 +1,7 @@
 export class UserManagementUI {
   static generateProfilePageHTML(userId: string): string {
     return `
-      <nav>
+      <nav class="user-nav">
         <a href="#/">Home</a> |
         <a href="#/profile">Profile</a> |
         <a href="#/search">Search Users</a> |
@@ -10,36 +10,36 @@ export class UserManagementUI {
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a>
       </nav>
-      <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+      <div class="user-content-container">
         <h2>👤 User Profile</h2>
         <div id="profileContent">
-          <div style="text-align: center; padding: 40px;">
-            <div style="color: #666;">Loading profile...</div>
+          <div class="user-loading">
+            <div>Loading profile...</div>
           </div>
         </div>
 
         <!-- Edit Profile Modal (Hidden by default) -->
-        <div id="editProfileModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
-            <h3>Edit Profile</h3>
+        <div id="editProfileModal" class="modal-overlay">
+          <div class="modal-content">
+            <h3 class="modal-title">Edit Profile</h3>
             <form id="editProfileForm">
-              <div style="margin: 15px 0;">
-                <label for="displayName">Display Name:</label><br>
-                <input type="text" id="displayName" name="display_name" style="padding: 8px; width: 100%; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+              <div class="form-group">
+                <label for="displayName">Display Name:</label>
+                <input type="text" id="displayName" name="display_name" class="form-input">
               </div>
-              <div style="margin: 15px 0;">
-                <label for="email">Email:</label><br>
-                <input type="email" id="email" name="email" style="padding: 8px; width: 100%; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+              <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" class="form-input">
               </div>
-              <div style="margin: 15px 0;">
-                <label for="bio">Bio:</label><br>
-                <textarea id="bio" name="bio" rows="3" style="padding: 8px; width: 100%; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+              <div class="form-group">
+                <label for="bio">Bio:</label>
+                <textarea id="bio" name="bio" rows="3" class="form-textarea"></textarea>
               </div>
-              <div style="margin: 20px 0; text-align: right;">
-                <button type="button" onclick="closeEditProfileModal()" style="padding: 10px 20px; margin-right: 10px; background: #6c757d; color: white; border: none; border-radius: 4px;">
+              <div class="modal-actions">
+                <button type="button" onclick="closeEditProfileModal()" class="btn btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px;">
+                <button type="submit" class="btn btn-primary">
                   Save Changes
                 </button>
               </div>
@@ -52,7 +52,7 @@ export class UserManagementUI {
 
   static generateSearchPageHTML(): string {
     return `
-      <nav>
+      <nav class="user-nav">
         <a href="#/">Home</a> |
         <a href="#/profile">Profile</a> |
         <a href="#/search">Search Users</a> |
@@ -61,18 +61,17 @@ export class UserManagementUI {
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a>
       </nav>
-      <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+      <div class="user-content-container">
         <h2>🔍 Search Users</h2>
 
-        <div style="margin-bottom: 30px;">
+        <div class="search-form">
           <form id="searchForm">
-            <div style="display: flex; gap: 10px; align-items: end;">
-              <div style="flex: 1;">
-                <label for="searchQuery">Search by username, display name, or email:</label><br>
-                <input type="text" id="searchQuery" placeholder="Enter at least 2 characters..."
-                       style="padding: 10px; width: 100%; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+            <div class="search-input-group">
+              <div class="search-input-container">
+                <label for="searchQuery">Search by username, display name, or email:</label>
+                <input type="text" id="searchQuery" placeholder="Enter at least 2 characters..." class="search-input">
               </div>
-              <button type="submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px;">
+              <button type="submit" class="btn btn-primary">
                 Search
               </button>
             </div>
@@ -80,7 +79,7 @@ export class UserManagementUI {
         </div>
 
         <div id="searchResults">
-          <div style="text-align: center; padding: 40px; color: #666;">
+          <div class="empty-state">
             Enter a search query to find users
           </div>
         </div>
@@ -90,7 +89,7 @@ export class UserManagementUI {
 
   static generateFriendsPageHTML(): string {
     return `
-      <nav>
+      <nav class="user-nav">
         <a href="#/">Home</a> |
         <a href="#/profile">Profile</a> |
         <a href="#/search">Search Users</a> |
@@ -99,23 +98,23 @@ export class UserManagementUI {
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a>
       </nav>
-      <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+      <div class="user-content-container">
         <h2>👥 Friends</h2>
 
-        <div style="margin-bottom: 30px;">
-          <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-            <button onclick="showFriendsList()" id="friendsListBtn" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px;">
+        <div class="mb-30">
+          <div class="btn-row">
+            <button onclick="showFriendsList()" id="friendsListBtn" class="btn btn-primary">
               Friends List
             </button>
-            <button onclick="showFriendRequests()" id="friendRequestsBtn" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px;">
+            <button onclick="showFriendRequests()" id="friendRequestsBtn" class="btn btn-secondary">
               Friend Requests
             </button>
           </div>
         </div>
 
         <div id="friendsContent">
-          <div style="text-align: center; padding: 40px;">
-            <div style="color: #666;">Loading friends...</div>
+          <div class="user-loading">
+            <div>Loading friends...</div>
           </div>
         </div>
       </div>
@@ -124,7 +123,7 @@ export class UserManagementUI {
 
   static generateMatchHistoryPageHTML(): string {
     return `
-      <nav>
+      <nav class="user-nav">
         <a href="#/">Home</a> |
         <a href="#/profile">Profile</a> |
         <a href="#/search">Search Users</a> |
@@ -133,23 +132,23 @@ export class UserManagementUI {
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a>
       </nav>
-      <div style="max-width: 1000px; margin: 0 auto; padding: 20px;">
+      <div class="user-content-wide">
         <h2>📊 Match History & Statistics</h2>
 
-        <div style="margin-bottom: 30px;">
-          <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-            <button onclick="showMatchHistory()" id="matchHistoryBtn" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px;">
+        <div class="mb-30">
+          <div class="btn-row">
+            <button onclick="showMatchHistory()" id="matchHistoryBtn" class="btn btn-primary">
               Match History
             </button>
-            <button onclick="showStatistics()" id="statisticsBtn" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px;">
+            <button onclick="showStatistics()" id="statisticsBtn" class="btn btn-secondary">
               Statistics
             </button>
           </div>
         </div>
 
         <div id="historyStatsContent">
-          <div style="text-align: center; padding: 40px;">
-            <div style="color: #666;">Loading match history...</div>
+          <div class="user-loading">
+            <div>Loading match history...</div>
           </div>
         </div>
       </div>
@@ -159,29 +158,30 @@ export class UserManagementUI {
   static generateUserCard(user: any, showActions: boolean = true): string {
     const onlineStatus = user.is_online ? '🟢 Online' : '🔴 Offline';
     const winRate = user.total_games > 0 ? ((user.wins / user.total_games) * 100).toFixed(1) : '0.0';
+    const statusClass = user.is_online ? 'status-online' : 'status-offline';
 
     return `
-      <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 10px 0; background: #f8f9fa;">
-        <div style="display: flex; justify-content: space-between; align-items: start;">
-          <div style="flex: 1;">
-            <h4 style="margin: 0 0 10px 0; color: #007bff;">
+      <div class="user-card">
+        <div class="card-content">
+          <div class="card-main">
+            <h4 class="card-title">
               ${user.display_name || user.username}
               ${user.username !== (user.display_name || user.username) ? `(@${user.username})` : ''}
             </h4>
-            <div style="margin: 5px 0; font-size: 14px; color: #666;">
+            <div class="card-status ${statusClass}">
               ${onlineStatus}
             </div>
-            ${user.bio ? `<div style="margin: 10px 0; font-style: italic;">${user.bio}</div>` : ''}
-            <div style="margin: 10px 0; font-size: 14px;">
+            ${user.bio ? `<div class="card-bio">${user.bio}</div>` : ''}
+            <div class="card-stats">
               <strong>Stats:</strong> ${user.wins || 0}W / ${user.losses || 0}L / ${user.total_games || 0} games (${winRate}% win rate)
             </div>
           </div>
           ${showActions ? `
-            <div style="display: flex; flex-direction: column; gap: 5px; margin-left: 20px;">
-              <button onclick="sendFriendRequest(${user.id})" style="padding: 5px 10px; background: #28a745; color: white; border: none; border-radius: 4px; font-size: 12px;">
+            <div class="card-actions">
+              <button onclick="sendFriendRequest(${user.id})" class="btn btn-success btn-small">
                 Add Friend
               </button>
-              <button onclick="viewUserProfile(${user.id})" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 12px;">
+              <button onclick="viewUserProfile(${user.id})" class="btn btn-primary btn-small">
                 View Profile
               </button>
             </div>
@@ -194,24 +194,25 @@ export class UserManagementUI {
   static generateFriendCard(friend: any): string {
     const onlineStatus = friend.is_online ? '🟢 Online' : '🔴 Offline';
     const friendSince = new Date(friend.friend_since).toLocaleDateString();
+    const statusClass = friend.is_online ? 'status-online' : 'status-offline';
 
     return `
-      <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 10px 0; background: #f8f9fa;">
-        <div style="display: flex; justify-content: space-between; align-items: start;">
-          <div style="flex: 1;">
-            <h4 style="margin: 0 0 10px 0; color: #007bff;">
+      <div class="user-card">
+        <div class="card-content">
+          <div class="card-main">
+            <h4 class="card-title">
               ${friend.display_name || friend.username}
               ${friend.username !== (friend.display_name || friend.username) ? `(@${friend.username})` : ''}
             </h4>
-            <div style="margin: 5px 0; font-size: 14px; color: #666;">
+            <div class="friend-since ${statusClass}">
               ${onlineStatus} • Friends since ${friendSince}
             </div>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 5px; margin-left: 20px;">
-            <button onclick="challengeToGame(${friend.id})" style="padding: 5px 10px; background: #ffc107; color: black; border: none; border-radius: 4px; font-size: 12px;">
+          <div class="card-actions">
+            <button onclick="challengeToGame(${friend.id})" class="btn btn-warning btn-small">
               Challenge
             </button>
-            <button onclick="viewUserProfile(${friend.id})" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 12px;">
+            <button onclick="viewUserProfile(${friend.id})" class="btn btn-primary btn-small">
               Profile
             </button>
           </div>
@@ -223,7 +224,7 @@ export class UserManagementUI {
   static generateMatchHistoryEntry(match: any): string {
     const matchDate = new Date(match.played_at).toLocaleDateString();
     const isWinner = match.winner_id === getCurrentUserId();
-    const resultClass = isWinner ? 'color: #28a745; font-weight: bold;' : 'color: #dc3545;';
+    const resultClass = isWinner ? 'match-result win' : 'match-result loss';
     const resultText = isWinner ? 'WIN' : 'LOSS';
 
     const opponent = match.player1_id === getCurrentUserId()
@@ -233,17 +234,17 @@ export class UserManagementUI {
     const userScore = match.player1_id === getCurrentUserId() ? match.player1_score : match.player2_score;
 
     return `
-      <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin: 10px 0; background: #f8f9fa;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="match-entry">
+        <div class="match-content">
           <div>
-            <div style="${resultClass}">${resultText}</div>
-            <div style="font-size: 14px; color: #666; margin-top: 5px;">vs ${opponent.name}</div>
-            <div style="font-size: 12px; color: #999; margin-top: 5px;">${matchDate}</div>
+            <div class="${resultClass}">${resultText}</div>
+            <div class="match-opponent">vs ${opponent.name}</div>
+            <div class="match-date">${matchDate}</div>
           </div>
-          <div style="text-align: right;">
-            <div style="font-size: 18px; font-weight: bold;">${userScore} - ${opponent.score}</div>
-            <div style="font-size: 12px; color: #666; margin-top: 5px;">${match.game_type}</div>
-            ${match.tournament_name ? `<div style="font-size: 12px; color: #007bff; margin-top: 2px;">🏆 ${match.tournament_name}</div>` : ''}
+          <div class="match-score">
+            <div class="match-score-text">${userScore} - ${opponent.score}</div>
+            <div class="match-type">${match.game_type}</div>
+            ${match.tournament_name ? `<div class="match-tournament">🏆 ${match.tournament_name}</div>` : ''}
           </div>
         </div>
       </div>

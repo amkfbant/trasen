@@ -24,13 +24,25 @@ class UserService {
 
   // ユーザー検索（username, email, display_name）
   async searchUsers(query) {
+    // Input validation and sanitization
+    if (!query || typeof query !== 'string') {
+      throw new Error('Invalid search query');
+    }
+
+    const sanitizedQuery = query.trim();
+    if (sanitizedQuery.length < 2) {
+      throw new Error('Search query must be at least 2 characters');
+    }
+
     return new Promise((resolve, reject) => {
       db.all(`
         SELECT id, username, display_name, avatar_url, is_online, wins, losses, total_games
         FROM users
-        WHERE username LIKE ? OR display_name LIKE ? OR email LIKE ?
+        WHERE username LIKE '%' || ? || '%'
+           OR display_name LIKE '%' || ? || '%'
+           OR email LIKE '%' || ? || '%'
         LIMIT 20
-      `, [`%${query}%`, `%${query}%`, `%${query}%`], (err, rows) => {
+      `, [sanitizedQuery, sanitizedQuery, sanitizedQuery], (err, rows) => {
         if (err) reject(err);
         else resolve(rows || []);
       });
@@ -232,55 +244,104 @@ class UserService {
     });
   }
 
-  // 友達申請承認
-  async acceptFriendRequest(userId, requestId) {
+  // Database helper methods for async/await pattern
+  async _runQuery(sql, params = []) {
     return new Promise((resolve, reject) => {
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
-
-        // 申請を承認
-        db.run(`
-          UPDATE friends
-          SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP
-          WHERE id = ? AND friend_id = ? AND status = 'pending'
-        `, [requestId, userId], function(err) {
-          if (err) {
-            db.run('ROLLBACK');
-            return reject(err);
-          }
-          if (this.changes === 0) {
-            db.run('ROLLBACK');
-            return reject(new Error('Friend request not found'));
-          }
-
-          // 逆方向の友達関係も作成
-          db.get('SELECT user_id FROM friends WHERE id = ?', [requestId], (err, row) => {
-            if (err) {
-              db.run('ROLLBACK');
-              return reject(err);
-            }
-
-            db.run(`
-              INSERT INTO friends (user_id, friend_id, status, accepted_at)
-              VALUES (?, ?, 'accepted', CURRENT_TIMESTAMP)
-            `, [userId, row.user_id], (err) => {
-              if (err) {
-                db.run('ROLLBACK');
-                return reject(err);
-              }
-
-              db.run('COMMIT', (err) => {
-                if (err) {
-                  db.run('ROLLBACK');
-                  return reject(err);
-                }
-                resolve({ message: 'Friend request accepted' });
-              });
-            });
-          });
-        });
+      db.run(sql, params, function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes, lastID: this.lastID });
       });
     });
+  }
+
+  async _getQuery(sql, params = []) {
+    return new Promise((resolve, reject) => {
+      db.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  }
+
+  async _beginTransaction() {
+    return this._runQuery('BEGIN TRANSACTION');
+  }
+
+  async _commitTransaction() {
+    return this._runQuery('COMMIT');
+  }
+
+  async _rollbackTransaction() {
+    return this._runQuery('ROLLBACK');
+  }
+
+  // 友達申請承認
+  async acceptFriendRequest(userId, requestId) {
+    try {
+      await this._beginTransaction();
+
+      // Race condition protection: Lock and verify the friend request exists and is still pending
+      const requestData = await this._getQuery(`
+        SELECT user_id, friend_id, status
+        FROM friends
+        WHERE id = ? AND friend_id = ? AND status = 'pending'
+      `, [requestId, userId]);
+
+      if (!requestData) {
+        await this._rollbackTransaction();
+        throw new Error('Friend request not found or already processed');
+      }
+
+      // Check if reverse relationship already exists (race condition protection)
+      const existingReverse = await this._getQuery(`
+        SELECT id FROM friends
+        WHERE user_id = ? AND friend_id = ? AND status = 'accepted'
+      `, [userId, requestData.user_id]);
+
+      if (existingReverse) {
+        await this._rollbackTransaction();
+        throw new Error('Friend relationship already exists');
+      }
+
+      // Update the original request to accepted
+      const updateResult = await this._runQuery(`
+        UPDATE friends
+        SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND friend_id = ? AND status = 'pending'
+      `, [requestId, userId]);
+
+      if (updateResult.changes === 0) {
+        await this._rollbackTransaction();
+        throw new Error('Friend request was modified by another process');
+      }
+
+      // Create reverse relationship with duplicate protection
+      try {
+        await this._runQuery(`
+          INSERT INTO friends (user_id, friend_id, status, accepted_at)
+          VALUES (?, ?, 'accepted', CURRENT_TIMESTAMP)
+        `, [userId, requestData.user_id]);
+      } catch (insertError) {
+        // Handle unique constraint violation (if exists)
+        if (insertError.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+            insertError.message.includes('UNIQUE constraint failed')) {
+          await this._rollbackTransaction();
+          throw new Error('Friend relationship already exists');
+        }
+        throw insertError;
+      }
+
+      await this._commitTransaction();
+      return { message: 'Friend request accepted' };
+
+    } catch (error) {
+      try {
+        await this._rollbackTransaction();
+      } catch (rollbackError) {
+        console.error('Failed to rollback transaction:', rollbackError);
+      }
+      throw error;
+    }
   }
 
   // 試合履歴取得

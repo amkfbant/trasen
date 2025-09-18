@@ -76,12 +76,12 @@ export class UserManagementHandlers {
     if (form) {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        await this.updateUserProfile();
+        await this.updateProfile();
       });
     }
   }
 
-  private static async updateUserProfile(): Promise<void> {
+  private static async updateProfile(): Promise<void> {
     const userId = this.getCurrentUserId();
     if (!userId) return;
 
@@ -380,11 +380,11 @@ export class UserManagementHandlers {
     }, 3000);
   }
 
-  static openEditProfileModal(): void {
+  static async openEditProfileModal(): Promise<void> {
     // Pre-populate form with current data
     const userId = this.getCurrentUserId();
     if (userId) {
-      this.populateEditForm(userId);
+      await this.populateEditForm(userId);
     }
     const modal = document.getElementById('editProfileModal')!;
     modal.style.display = 'block';

@@ -1,5 +1,13 @@
 import { initGame } from "./game.js";
 
+// キー入力状態管理（トーナメントゲーム用）
+type Keys = { [k: string]: boolean };
+const keys: Keys = {};
+
+// キーボードイベントリスナーを追加
+window.addEventListener("keydown", (e) => { keys[e.code] = true; });
+window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
 const app = document.getElementById("app")!;
 
 
@@ -115,6 +123,37 @@ function render() {
     `;
     const canvas = document.getElementById("game") as HTMLCanvasElement;
     initGame(canvas);
+  } else if (route.startsWith("/tournament-match")) {
+    // トーナメント専用ゲーム画面
+    const params = new URLSearchParams(route.split('?')[1] || '');
+    const tournamentId = params.get('tournamentId');
+    const matchId = params.get('matchId');
+    const player1 = params.get('player1');
+    const player2 = params.get('player2');
+
+    app.innerHTML = `
+      <nav>
+        <a href="#/tournament">← トーナメントに戻る</a>
+      </nav>
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2>🏆 トーナメント試合</h2>
+        <h3>${player1} vs ${player2}</h3>
+        <p>トーナメントID: ${tournamentId} | 試合ID: ${matchId}</p>
+      </div>
+      <canvas id="tournamentGame" width="800" height="480"
+        style="width:100%;max-width:800px;border:1px solid #ddd;border-radius:8px;margin:0 auto;display:block;"></canvas>
+      <div style="text-align: center; margin-top: 15px;">
+        <p class="muted">Left Player (${player1}): W/S　Right Player (${player2}): ↑/↓</p>
+        <p class="muted">R: Reset　P: Pause　先に5点取った方の勝利！</p>
+        <div id="gameStatus" style="margin-top: 10px; font-weight: bold;"></div>
+        <div id="gameControls" style="margin-top: 10px;">
+          <button onclick="resetTournamentGame()" style="padding: 8px 15px; margin: 0 5px;">ゲームリセット</button>
+          <button onclick="endTournamentGame()" style="padding: 8px 15px; margin: 0 5px; background: #dc3545; color: white; border: none; border-radius: 4px;">試合終了</button>
+        </div>
+      </div>
+    `;
+    const canvas = document.getElementById("tournamentGame") as HTMLCanvasElement;
+    initTournamentGame(canvas, tournamentId!, matchId!, player1!, player2!);
   } else if (route === "/tournament") {
     app.innerHTML = `
       <nav>
@@ -506,8 +545,15 @@ async function loadTournamentDetails() {
                 ? isLastRound
                   ? `<br><span style="color: gold;">🏆 優勝: ${match.winner_alias} (${match.player1_score}-${match.player2_score})</span>`
                   : `<br><span style="color: green;">結果: ${match.winner_alias} 勝利 (${match.player1_score}-${match.player2_score})</span>`
-                : `<br><button onclick="showResultForm(${match.id}, '${match.player1_alias}', '${match.player2_alias}')"
-                            style="padding: 5px 10px; margin-top: 5px;">結果入力</button>`
+                : `<br>
+                   <button onclick="startTournamentMatch(${tournamentId}, ${match.id}, '${match.player1_alias}', '${match.player2_alias}')"
+                           style="padding: 5px 10px; margin: 5px 5px 5px 0; background: #007bff; color: white; border: none; border-radius: 3px;">
+                     🎮 ゲーム開始
+                   </button>
+                   <button onclick="showResultForm(${match.id}, '${match.player1_alias}', '${match.player2_alias}')"
+                           style="padding: 5px 10px; margin: 5px 0;">
+                     📝 手動入力
+                   </button>`
               }
             </div>
           `;
@@ -615,12 +661,297 @@ async function submitResult(matchId: number) {
   }
 }
 
+// トーナメント試合開始（ゲーム画面への遷移）
+function startTournamentMatch(tournamentId: number, matchId: number, player1: string, player2: string) {
+  const params = new URLSearchParams({
+    tournamentId: tournamentId.toString(),
+    matchId: matchId.toString(),
+    player1: player1,
+    player2: player2
+  });
+  window.location.hash = `/tournament-match?${params.toString()}`;
+}
+
+// トーナメントゲームのゲーム状態
+let tournamentGameState: {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  tournamentId: string;
+  matchId: string;
+  player1: string;
+  player2: string;
+  animationId?: number;
+  gameEnded: boolean;
+  leftY: number;
+  rightY: number;
+  ballX: number;
+  ballY: number;
+  vx: number;
+  vy: number;
+  scoreL: number;
+  scoreR: number;
+  paused: boolean;
+} | null = null;
+
+// トーナメントゲーム初期化
+function initTournamentGame(canvas: HTMLCanvasElement, tournamentId: string, matchId: string, player1: string, player2: string) {
+  const ctx = canvas.getContext("2d")!;
+  const W = canvas.width;
+  const H = canvas.height;
+
+  // ゲーム状態の初期化
+  tournamentGameState = {
+    canvas,
+    ctx,
+    tournamentId,
+    matchId,
+    player1,
+    player2,
+    gameEnded: false,
+    leftY: (H - 80) / 2,
+    rightY: (H - 80) / 2,
+    ballX: W / 2,
+    ballY: H / 2,
+    vx: 5 * (Math.random() < 0.5 ? 1 : -1),
+    vy: 3 * (Math.random() < 0.5 ? 1 : -1),
+    scoreL: 0,
+    scoreR: 0,
+    paused: false
+  };
+
+  const gameStatus = document.getElementById("gameStatus") as HTMLDivElement;
+  gameStatus.innerHTML = `<p style="color: green;">ゲーム開始！ 先に5点取った方の勝利です</p>`;
+
+  // キーボードイベントリスナー（ポーズとリセット）
+  const keyHandler = (e: KeyboardEvent) => {
+    if (e.code === "KeyP") {
+      e.preventDefault();
+      if (tournamentGameState) {
+        tournamentGameState.paused = !tournamentGameState.paused;
+        const gameStatus = document.getElementById("gameStatus") as HTMLDivElement;
+        if (tournamentGameState.paused) {
+          gameStatus.innerHTML = `<p style="color: orange;">⏸️ ゲーム一時停止</p>`;
+        } else {
+          gameStatus.innerHTML = `<p style="color: green;">▶️ ゲーム再開</p>`;
+        }
+      }
+    }
+    if (e.code === "KeyR") {
+      e.preventDefault();
+      resetTournamentGame();
+    }
+  };
+
+  // 一度だけイベントリスナーを追加
+  window.removeEventListener("keydown", keyHandler);
+  window.addEventListener("keydown", keyHandler);
+
+  // ゲームループ開始
+  tournamentGameLoop();
+}
+
+// トーナメントゲームループ
+function tournamentGameLoop() {
+  if (!tournamentGameState || tournamentGameState.gameEnded) return;
+
+  const state = tournamentGameState;
+  const W = state.canvas.width;
+  const H = state.canvas.height;
+  const PADDLE_SPEED = 6;
+  const PADDLE_W = 12;
+  const PADDLE_H = 80;
+  const BALL_R = 8;
+
+  if (!state.paused) {
+    // キー入力処理
+    if (keys["KeyW"]) state.leftY -= PADDLE_SPEED;
+    if (keys["KeyS"]) state.leftY += PADDLE_SPEED;
+    if (keys["ArrowUp"]) state.rightY -= PADDLE_SPEED;
+    if (keys["ArrowDown"]) state.rightY += PADDLE_SPEED;
+    state.leftY = Math.max(0, Math.min(H - PADDLE_H, state.leftY));
+    state.rightY = Math.max(0, Math.min(H - PADDLE_H, state.rightY));
+
+    // ボール移動
+    state.ballX += state.vx;
+    state.ballY += state.vy;
+
+    // 上下バウンド
+    if (state.ballY - BALL_R < 0 && state.vy < 0) {
+      state.ballY = BALL_R;
+      state.vy *= -1;
+    }
+    if (state.ballY + BALL_R > H && state.vy > 0) {
+      state.ballY = H - BALL_R;
+      state.vy *= -1;
+    }
+
+    // 左パドル衝突
+    if (state.ballX - BALL_R < 20 + PADDLE_W &&
+        state.ballY > state.leftY && state.ballY < state.leftY + PADDLE_H && state.vx < 0) {
+      state.ballX = 20 + PADDLE_W + BALL_R;
+      state.vx *= -1;
+      const offset = (state.ballY - (state.leftY + PADDLE_H / 2)) / (PADDLE_H / 2);
+      state.vy = Math.max(-8, Math.min(8, state.vy + offset * 2.5));
+    }
+
+    // 右パドル衝突
+    if (state.ballX + BALL_R > W - 20 - PADDLE_W &&
+        state.ballY > state.rightY && state.ballY < state.rightY + PADDLE_H && state.vx > 0) {
+      state.ballX = W - 20 - PADDLE_W - BALL_R;
+      state.vx *= -1;
+      const offset = (state.ballY - (state.rightY + PADDLE_H / 2)) / (PADDLE_H / 2);
+      state.vy = Math.max(-8, Math.min(8, state.vy + offset * 2.5));
+    }
+
+    // 得点
+    if (state.ballX < -BALL_R) {
+      state.scoreR++;
+      resetTournamentBall(1);
+    }
+    if (state.ballX > W + BALL_R) {
+      state.scoreL++;
+      resetTournamentBall(-1);
+    }
+
+    // 勝利判定（5点先取）
+    if (state.scoreL >= 5 || state.scoreR >= 5) {
+      const winner = state.scoreL >= 5 ? state.player1 : state.player2;
+      const gameStatus = document.getElementById("gameStatus") as HTMLDivElement;
+      gameStatus.innerHTML = `<p style="color: gold; font-size: 18px;">🏆 ${winner} の勝利！</p>`;
+
+      // 自動でスコアを送信
+      autoSubmitTournamentResult(winner, state.scoreL, state.scoreR);
+      state.gameEnded = true;
+      return;
+    }
+  }
+
+  // 描画
+  state.ctx.clearRect(0, 0, W, H);
+
+  // 中央線
+  state.ctx.setLineDash([8, 8]);
+  state.ctx.strokeStyle = "#ddd";
+  state.ctx.beginPath();
+  state.ctx.moveTo(W/2, 0);
+  state.ctx.lineTo(W/2, H);
+  state.ctx.stroke();
+  state.ctx.setLineDash([]);
+
+  // スコア
+  state.ctx.fillStyle = "#444";
+  state.ctx.font = "bold 24px system-ui, sans-serif";
+  state.ctx.textAlign = "center";
+  state.ctx.fillText(`${state.player1}: ${state.scoreL} - ${state.scoreR} :${state.player2}`, W/2, 32);
+
+  // パドル
+  state.ctx.fillStyle = "#111";
+  state.ctx.fillRect(20, state.leftY, PADDLE_W, PADDLE_H);
+  state.ctx.fillRect(W - 20 - PADDLE_W, state.rightY, PADDLE_W, PADDLE_H);
+
+  // ボール
+  state.ctx.beginPath();
+  state.ctx.arc(state.ballX, state.ballY, BALL_R, 0, Math.PI * 2);
+  state.ctx.fill();
+
+  state.animationId = requestAnimationFrame(tournamentGameLoop);
+}
+
+// トーナメントゲームのボールリセット
+function resetTournamentBall(dir: number) {
+  if (!tournamentGameState) return;
+  const W = tournamentGameState.canvas.width;
+  const H = tournamentGameState.canvas.height;
+
+  tournamentGameState.ballX = W / 2;
+  tournamentGameState.ballY = H / 2;
+  tournamentGameState.vx = 5 * dir;
+  tournamentGameState.vy = ((Math.random() * 2) + 2) * (Math.random() < 0.5 ? 1 : -1);
+}
+
+// 自動スコア送信
+async function autoSubmitTournamentResult(winner: string, scoreL: number, scoreR: number) {
+  if (!tournamentGameState) return;
+
+  try {
+    const response = await fetch(`http://localhost:3000/tournaments/${tournamentGameState.tournamentId}/matches/${tournamentGameState.matchId}/result`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        winner_alias: winner,
+        player1_score: scoreL,
+        player2_score: scoreR
+      })
+    });
+
+    const data = await response.json();
+    const gameStatus = document.getElementById("gameStatus") as HTMLDivElement;
+
+    if (response.ok) {
+      gameStatus.innerHTML += `<p style="color: green;">✅ 結果が自動記録されました</p>`;
+
+      // 3秒後にトーナメント画面に戻る
+      setTimeout(() => {
+        window.location.hash = "/tournament";
+      }, 3000);
+    } else {
+      gameStatus.innerHTML += `<p style="color: red;">❌ 結果の記録に失敗しました: ${data.error}</p>`;
+    }
+  } catch (error) {
+    const gameStatus = document.getElementById("gameStatus") as HTMLDivElement;
+    gameStatus.innerHTML += `<p style="color: red;">❌ ネットワークエラーが発生しました</p>`;
+  }
+}
+
+// トーナメントゲームリセット
+function resetTournamentGame() {
+  if (!tournamentGameState) return;
+
+  tournamentGameState.scoreL = 0;
+  tournamentGameState.scoreR = 0;
+  tournamentGameState.gameEnded = false;
+  resetTournamentBall(Math.random() < 0.5 ? 1 : -1);
+
+  const gameStatus = document.getElementById("gameStatus") as HTMLDivElement;
+  gameStatus.innerHTML = `<p style="color: green;">ゲームリセット！ 先に5点取った方の勝利です</p>`;
+}
+
+// トーナメントゲーム終了（手動）
+async function endTournamentGame() {
+  if (!tournamentGameState || tournamentGameState.gameEnded) return;
+
+  const result = confirm("試合を手動で終了しますか？現在のスコアで勝者を決定します。");
+  if (!result) return;
+
+  const state = tournamentGameState;
+  let winner: string;
+
+  if (state.scoreL > state.scoreR) {
+    winner = state.player1;
+  } else if (state.scoreR > state.scoreL) {
+    winner = state.player2;
+  } else {
+    // 同点の場合は引き分け処理（とりあえず左プレイヤーを勝者とする）
+    winner = state.player1;
+  }
+
+  state.gameEnded = true;
+  const gameStatus = document.getElementById("gameStatus") as HTMLDivElement;
+  gameStatus.innerHTML = `<p style="color: orange;">🏁 手動終了: ${winner} の勝利</p>`;
+
+  // 結果を送信
+  await autoSubmitTournamentResult(winner, state.scoreL, state.scoreR);
+}
+
 // グローバル関数として定義（onclickで使用）
 (window as any).checkPlayers = checkPlayers;
 (window as any).loadTournamentDetails = loadTournamentDetails;
 (window as any).startTournament = startTournament;
 (window as any).showResultForm = showResultForm;
 (window as any).submitResult = submitResult;
+(window as any).startTournamentMatch = startTournamentMatch;
+(window as any).resetTournamentGame = resetTournamentGame;
+(window as any).endTournamentGame = endTournamentGame;
 
 window.addEventListener("hashchange", render);
 

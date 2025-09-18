@@ -39,14 +39,25 @@ export class TournamentUI {
   }
 
   static generateRegisterPageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>Register</h2>
       <form id="registerForm">
@@ -71,14 +82,25 @@ export class TournamentUI {
   }
 
   static generateLoginPageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>Login</h2>
       <form id="loginForm">
@@ -103,14 +125,25 @@ export class TournamentUI {
   }
 
   static generateGamePageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>Pong</h2>
       <canvas id="game" width="800" height="480"
@@ -120,14 +153,25 @@ export class TournamentUI {
   }
 
   static generateAboutPageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>About ft_transcendence</h2>
       <p>42 School project - A modern web-based Pong game with tournaments.</p>
@@ -135,14 +179,25 @@ export class TournamentUI {
   }
 
   static generateTournamentPageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>Tournament</h2>
 

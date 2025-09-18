@@ -123,7 +123,7 @@ fastify.post('/login', async (request, reply) => {
   }
 });
 
-// === トーナメント関連API ===
+// トーナメント関連API
 
 // トーナメント作成
 fastify.post('/tournaments', async (request, reply) => {
@@ -287,25 +287,18 @@ fastify.get('/tournaments/:id/players', async (request, reply) => {
 
 // トーナメント一覧取得
 fastify.get('/tournaments', async (request, reply) => {
-  console.log('GET /tournaments called');
   try {
     const tournaments = await new Promise((resolve, reject) => {
       db.all(
         'SELECT id, name, status, max_players, created_at FROM tournaments ORDER BY created_at DESC',
         [],
         (err, rows) => {
-          if (err) {
-            console.error('Database error:', err);
-            reject(err);
-          } else {
-            console.log('Found tournaments:', rows);
-            resolve(rows);
-          }
+          if (err) reject(err);
+          else resolve(rows);
         }
       );
     });
 
-    console.log('Returning tournaments:', tournaments);
     return { tournaments };
   } catch (error) {
     console.error('Get tournaments error:', error);

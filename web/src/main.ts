@@ -167,7 +167,7 @@ function render() {
       </div>
 
       <!-- 参加者一覧 -->
-      <div>
+      <div style="margin-bottom: 30px;">
         <h3>参加者確認</h3>
         <div style="margin: 10px 0;">
           <label for="checkTournamentId">トーナメントID:</label>
@@ -175,6 +175,17 @@ function render() {
           <button onclick="checkPlayers()" style="padding: 5px 15px;">参加者確認</button>
         </div>
         <div id="playersList">トーナメントIDを入力して「参加者確認」ボタンを押してください</div>
+      </div>
+
+      <!-- トーナメント進行管理 -->
+      <div style="margin-bottom: 30px; padding: 20px; border: 2px solid #ddd; border-radius: 8px;">
+        <h3>トーナメント進行管理</h3>
+        <div style="margin: 10px 0;">
+          <label for="manageTournamentId">トーナメントID:</label>
+          <input type="number" id="manageTournamentId" style="padding: 5px; width: 100px; margin: 0 10px;">
+          <button onclick="loadTournamentDetails()" style="padding: 5px 15px;">詳細表示</button>
+        </div>
+        <div id="tournamentDetails"></div>
       </div>
     `;
     setupTournamentForms();
@@ -402,8 +413,199 @@ async function checkPlayers() {
   }
 }
 
+// トーナメント詳細管理
+async function loadTournamentDetails() {
+  const input = document.getElementById("manageTournamentId") as HTMLInputElement;
+  const detailsDiv = document.getElementById("tournamentDetails") as HTMLDivElement;
+  const tournamentId = input.value;
+
+  if (!tournamentId) {
+    detailsDiv.innerHTML = "<p style='color: red;'>トーナメントIDを入力してください。</p>";
+    return;
+  }
+
+  try {
+    // トーナメント基本情報取得
+    const tournamentResponse = await fetch(`http://localhost:3000/tournaments/${tournamentId}`);
+    const tournamentData = await tournamentResponse.json();
+
+    if (!tournamentResponse.ok) {
+      detailsDiv.innerHTML = "<p style='color: red;'>トーナメントが見つかりません。</p>";
+      return;
+    }
+
+    // 参加者情報取得
+    const playersResponse = await fetch(`http://localhost:3000/tournaments/${tournamentId}/players`);
+    const playersData = await playersResponse.json();
+
+    // 試合情報取得
+    const matchesResponse = await fetch(`http://localhost:3000/tournaments/${tournamentId}/matches`);
+    const matchesData = await matchesResponse.json();
+
+    const tournament = tournamentData.tournament;
+    const players = playersData.players;
+    const matches = matchesData.matches;
+
+    let html = `
+      <h4>トーナメント: ${tournament.name}</h4>
+      <p><strong>状態:</strong> ${tournament.status} | <strong>参加者数:</strong> ${players.length}/${tournament.max_players}</p>
+    `;
+
+    if (tournament.status === 'waiting') {
+      if (players.length === 4) {
+        html += `
+          <button onclick="startTournament(${tournamentId})"
+                  style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; margin: 10px 0;">
+            トーナメント開始
+          </button>
+        `;
+      } else {
+        html += `<p style='color: orange;'>4人の参加者が必要です。現在: ${players.length}人</p>`;
+      }
+    } else if (tournament.status === 'in_progress') {
+      html += "<h5>試合状況</h5>";
+
+      const round1Matches = matches.filter((m: any) => m.round === 1);
+      const round2Matches = matches.filter((m: any) => m.round === 2);
+
+      // 準決勝
+      html += "<h6>準決勝</h6>";
+      round1Matches.forEach((match: any) => {
+        html += `
+          <div style="border: 1px solid #ccc; padding: 10px; margin: 5px 0; border-radius: 5px;">
+            <strong>試合${match.match_number}:</strong> ${match.player1_alias} vs ${match.player2_alias}
+            ${match.status === 'completed'
+              ? `<br><span style="color: green;">結果: ${match.winner_alias} 勝利 (${match.player1_score}-${match.player2_score})</span>`
+              : `<br><button onclick="showResultForm(${match.id}, '${match.player1_alias}', '${match.player2_alias}')"
+                          style="padding: 5px 10px; margin-top: 5px;">結果入力</button>`
+            }
+          </div>
+        `;
+      });
+
+      // 決勝
+      if (round2Matches.length > 0) {
+        html += "<h6>決勝</h6>";
+        round2Matches.forEach((match: any) => {
+          html += `
+            <div style="border: 1px solid #ccc; padding: 10px; margin: 5px 0; border-radius: 5px;">
+              <strong>決勝:</strong> ${match.player1_alias} vs ${match.player2_alias}
+              ${match.status === 'completed'
+                ? `<br><span style="color: gold;">🏆 優勝: ${match.winner_alias} (${match.player1_score}-${match.player2_score})</span>`
+                : `<br><button onclick="showResultForm(${match.id}, '${match.player1_alias}', '${match.player2_alias}')"
+                            style="padding: 5px 10px; margin-top: 5px;">結果入力</button>`
+              }
+            </div>
+          `;
+        });
+      }
+    } else if (tournament.status === 'completed') {
+      const finalMatch = matches.find((m: any) => m.round === 2 && m.status === 'completed');
+      html += `<h5 style="color: gold;">🏆 トーナメント完了！</h5>`;
+      html += `<p><strong>優勝者:</strong> ${finalMatch?.winner_alias}</p>`;
+    }
+
+    detailsDiv.innerHTML = html;
+  } catch (error) {
+    detailsDiv.innerHTML = "<p style='color: red;'>エラーが発生しました。</p>";
+  }
+}
+
+// トーナメント開始
+async function startTournament(tournamentId: number) {
+  try {
+    const response = await fetch(`http://localhost:3000/tournaments/${tournamentId}/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert(`✅ ${data.message}`);
+      loadTournamentDetails(); // 詳細を再読み込み
+    } else {
+      alert(`❌ ${data.error}`);
+    }
+  } catch (error) {
+    alert("❌ ネットワークエラーが発生しました。");
+  }
+}
+
+// 試合結果入力フォーム表示
+function showResultForm(matchId: number, player1: string, player2: string) {
+  const detailsDiv = document.getElementById("tournamentDetails") as HTMLDivElement;
+
+  const formHtml = `
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+      <h6>試合結果入力: ${player1} vs ${player2}</h6>
+      <form id="resultForm-${matchId}">
+        <div style="margin: 10px 0;">
+          <label>勝者:</label>
+          <select name="winner" required style="padding: 5px; margin: 0 10px;">
+            <option value="">選択してください</option>
+            <option value="${player1}">${player1}</option>
+            <option value="${player2}">${player2}</option>
+          </select>
+        </div>
+        <div style="margin: 10px 0;">
+          <label>${player1}のスコア:</label>
+          <input type="number" name="player1_score" min="0" required style="padding: 5px; width: 60px; margin: 0 10px;">
+          <label>${player2}のスコア:</label>
+          <input type="number" name="player2_score" min="0" required style="padding: 5px; width: 60px; margin: 0 10px;">
+        </div>
+        <button type="button" onclick="submitResult(${matchId})" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; margin-right: 10px;">
+          結果を記録
+        </button>
+        <button type="button" onclick="loadTournamentDetails()" style="padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 4px;">
+          キャンセル
+        </button>
+      </form>
+    </div>
+  `;
+
+  // 結果フォームを既存の内容に追加
+  detailsDiv.innerHTML += formHtml;
+}
+
+// 試合結果送信
+async function submitResult(matchId: number) {
+  const form = document.getElementById(`resultForm-${matchId}`) as HTMLFormElement;
+  const formData = new FormData(form);
+
+  const tournamentId = (document.getElementById("manageTournamentId") as HTMLInputElement).value;
+
+  try {
+    const response = await fetch(`http://localhost:3000/tournaments/${tournamentId}/matches/${matchId}/result`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        winner_alias: formData.get("winner"),
+        player1_score: parseInt(formData.get("player1_score") as string),
+        player2_score: parseInt(formData.get("player2_score") as string)
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert(`✅ ${data.message}`);
+      loadTournamentDetails(); // 詳細を再読み込み
+    } else {
+      alert(`❌ ${data.error}`);
+    }
+  } catch (error) {
+    alert("❌ ネットワークエラーが発生しました。");
+  }
+}
+
 // グローバル関数として定義（onclickで使用）
 (window as any).checkPlayers = checkPlayers;
+(window as any).loadTournamentDetails = loadTournamentDetails;
+(window as any).startTournament = startTournament;
+(window as any).showResultForm = showResultForm;
+(window as any).submitResult = submitResult;
 
 window.addEventListener("hashchange", render);
 

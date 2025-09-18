@@ -23,13 +23,23 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 // テーブル作成
 function initDatabase() {
-  // usersテーブル
+  // usersテーブル（User Management拡張）
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE,
       password TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      display_name TEXT,
+      avatar_url TEXT,
+      bio TEXT,
+      is_online BOOLEAN DEFAULT FALSE,
+      last_active DATETIME,
+      wins INTEGER DEFAULT 0,
+      losses INTEGER DEFAULT 0,
+      total_games INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `, (err) => {
     if (err) {
@@ -102,6 +112,57 @@ function initDatabase() {
       console.error('matchesテーブル作成エラー:', err.message);
     } else {
       console.log('matchesテーブルを作成/確認しました');
+    }
+  });
+
+  // friendsテーブル - 友達システム
+  db.run(`
+    CREATE TABLE IF NOT EXISTS friends (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      friend_id INTEGER NOT NULL,
+      status TEXT CHECK(status IN ('pending', 'accepted', 'blocked')) DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      accepted_at DATETIME,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (friend_id) REFERENCES users(id),
+      UNIQUE(user_id, friend_id)
+    )
+  `, (err) => {
+    if (err) {
+      console.error('friendsテーブル作成エラー:', err.message);
+    } else {
+      console.log('friendsテーブルを作成/確認しました');
+    }
+  });
+
+  // match_historyテーブル - 試合履歴（1v1含む）
+  db.run(`
+    CREATE TABLE IF NOT EXISTS match_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player1_id INTEGER NOT NULL,
+      player2_id INTEGER NOT NULL,
+      player1_alias TEXT NOT NULL,
+      player2_alias TEXT NOT NULL,
+      winner_id INTEGER,
+      player1_score INTEGER DEFAULT 0,
+      player2_score INTEGER DEFAULT 0,
+      game_type TEXT CHECK(game_type IN ('tournament', '1v1', 'practice')) DEFAULT '1v1',
+      tournament_id INTEGER,
+      match_id INTEGER,
+      duration_seconds INTEGER,
+      played_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (player1_id) REFERENCES users(id),
+      FOREIGN KEY (player2_id) REFERENCES users(id),
+      FOREIGN KEY (winner_id) REFERENCES users(id),
+      FOREIGN KEY (tournament_id) REFERENCES tournaments(id),
+      FOREIGN KEY (match_id) REFERENCES matches(id)
+    )
+  `, (err) => {
+    if (err) {
+      console.error('match_historyテーブル作成エラー:', err.message);
+    } else {
+      console.log('match_historyテーブルを作成/確認しました');
     }
   });
 

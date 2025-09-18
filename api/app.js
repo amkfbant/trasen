@@ -22,6 +22,18 @@ fastify.get('/', async (request, reply) => {
 fastify.post('/register', userController.register.bind(userController));
 fastify.post('/login', userController.login.bind(userController));
 
+// User Management拡張ルート
+fastify.get('/users/search', userController.searchUsers.bind(userController));
+fastify.get('/users/:userId/profile', userController.getProfile.bind(userController));
+fastify.put('/users/:userId/profile', userController.updateProfile.bind(userController));
+fastify.post('/users/:userId/online-status', userController.updateOnlineStatus.bind(userController));
+fastify.get('/users/:userId/friends', userController.getFriends.bind(userController));
+fastify.post('/users/:userId/friend-requests', userController.sendFriendRequest.bind(userController));
+fastify.post('/users/:userId/friend-requests/:requestId/accept', userController.acceptFriendRequest.bind(userController));
+fastify.get('/users/:userId/match-history', userController.getMatchHistory.bind(userController));
+fastify.get('/users/:userId/stats', userController.getUserStats.bind(userController));
+fastify.post('/matches/record', userController.recordMatch.bind(userController));
+
 // トーナメント関連ルート
 fastify.post('/tournaments', tournamentController.createTournament.bind(tournamentController));
 fastify.get('/tournaments/:id', tournamentController.getTournament.bind(tournamentController));

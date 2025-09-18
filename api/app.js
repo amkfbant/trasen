@@ -128,16 +128,22 @@ fastify.post('/login', async (request, reply) => {
 // トーナメント作成
 fastify.post('/tournaments', async (request, reply) => {
   try {
-    const { name } = request.body;
+    const { name, max_players = 4 } = request.body;
 
     if (!name || name.trim().length === 0) {
       return reply.status(400).send({ error: 'Tournament name is required' });
     }
 
+    // 有効な参加者数かチェック
+    const validSizes = [2, 4, 8, 16];
+    if (!validSizes.includes(max_players)) {
+      return reply.status(400).send({ error: 'Invalid tournament size. Must be 2, 4, 8, or 16 players' });
+    }
+
     const result = await new Promise((resolve, reject) => {
       db.run(
-        'INSERT INTO tournaments (name) VALUES (?)',
-        [name.trim()],
+        'INSERT INTO tournaments (name, max_players) VALUES (?, ?)',
+        [name.trim(), max_players],
         function(err) {
           if (err) reject(err);
           else resolve({ id: this.lastID });
@@ -147,7 +153,7 @@ fastify.post('/tournaments', async (request, reply) => {
 
     return {
       message: 'Tournament created successfully',
-      tournament: { id: result.id, name: name.trim() }
+      tournament: { id: result.id, name: name.trim(), max_players }
     };
   } catch (error) {
     console.error('Tournament creation error:', error);
@@ -306,6 +312,65 @@ fastify.get('/tournaments', async (request, reply) => {
   }
 });
 
+// 可変人数対応のブラケット生成関数
+function generateBracket(players, tournamentId) {
+  const totalPlayers = players.length;
+  const matches = [];
+
+  if (totalPlayers === 2) {
+    // 2人: 決勝のみ
+    matches.push({
+      tournament_id: tournamentId,
+      round: 1,
+      match_number: 1,
+      player1_alias: players[0].alias,
+      player2_alias: players[1].alias
+    });
+  } else if (totalPlayers === 4) {
+    // 4人: 準決勝2試合
+    matches.push(
+      {
+        tournament_id: tournamentId,
+        round: 1,
+        match_number: 1,
+        player1_alias: players[0].alias,
+        player2_alias: players[1].alias
+      },
+      {
+        tournament_id: tournamentId,
+        round: 1,
+        match_number: 2,
+        player1_alias: players[2].alias,
+        player2_alias: players[3].alias
+      }
+    );
+  } else if (totalPlayers === 8) {
+    // 8人: 1回戦4試合
+    for (let i = 0; i < 4; i++) {
+      matches.push({
+        tournament_id: tournamentId,
+        round: 1,
+        match_number: i + 1,
+        player1_alias: players[i * 2].alias,
+        player2_alias: players[i * 2 + 1].alias
+      });
+    }
+  } else if (totalPlayers === 16) {
+    // 16人: 1回戦8試合
+    for (let i = 0; i < 8; i++) {
+      matches.push({
+        tournament_id: tournamentId,
+        round: 1,
+        match_number: i + 1,
+        player1_alias: players[i * 2].alias,
+        player2_alias: players[i * 2 + 1].alias
+      });
+    }
+  }
+
+  return matches;
+}
+
 // トーナメント開始
 fastify.post('/tournaments/:id/start', async (request, reply) => {
   try {
@@ -339,8 +404,10 @@ fastify.post('/tournaments/:id/start', async (request, reply) => {
       );
     });
 
-    if (players.length !== 4) {
-      return reply.status(400).send({ error: 'Tournament requires exactly 4 players' });
+    if (players.length !== tournament.max_players) {
+      return reply.status(400).send({
+        error: `Tournament requires exactly ${tournament.max_players} players. Current: ${players.length}`
+      });
     }
 
     // トーナメント状態を開始に変更
@@ -355,26 +422,32 @@ fastify.post('/tournaments/:id/start', async (request, reply) => {
       );
     });
 
-    // 準決勝の試合を生成
-    await new Promise((resolve, reject) => {
-      db.run(
-        `INSERT INTO matches (tournament_id, round, match_number, player1_alias, player2_alias) VALUES
-         (?, 1, 1, ?, ?),
-         (?, 1, 2, ?, ?)`,
-        [id, players[0].alias, players[1].alias, id, players[2].alias, players[3].alias],
-        (err) => {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
+    // ブラケット生成
+    const initialMatches = generateBracket(players, id);
+
+    // 試合をデータベースに挿入
+    for (const match of initialMatches) {
+      await new Promise((resolve, reject) => {
+        db.run(
+          'INSERT INTO matches (tournament_id, round, match_number, player1_alias, player2_alias) VALUES (?, ?, ?, ?, ?)',
+          [match.tournament_id, match.round, match.match_number, match.player1_alias, match.player2_alias],
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
+    }
 
     return {
       message: 'Tournament started successfully',
-      matches: [
-        { round: 1, match: 1, player1: players[0].alias, player2: players[1].alias },
-        { round: 1, match: 2, player1: players[2].alias, player2: players[3].alias }
-      ]
+      tournament_size: tournament.max_players,
+      initial_matches: initialMatches.map(m => ({
+        round: m.round,
+        match: m.match_number,
+        player1: m.player1_alias,
+        player2: m.player2_alias
+      }))
     };
   } catch (error) {
     console.error('Start tournament error:', error);
@@ -431,42 +504,69 @@ fastify.post('/tournaments/:tournamentId/matches/:matchId/result', async (reques
 
     const allCompleted = roundMatches.every(match => match.status === 'completed');
 
-    if (allCompleted && currentMatch.round === 1) {
-      // 準決勝が全て完了したら決勝を生成
+    if (allCompleted) {
+      // トーナメント情報を取得して次のラウンドを決定
+      const tournament = await new Promise((resolve, reject) => {
+        db.get('SELECT max_players FROM tournaments WHERE id = ?', [tournamentId], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+
       const winners = roundMatches.map(match => match.winner_alias);
+      const totalRounds = Math.log2(tournament.max_players);
+      const isLastRound = currentMatch.round === totalRounds;
 
-      await new Promise((resolve, reject) => {
-        db.run(
-          'INSERT INTO matches (tournament_id, round, match_number, player1_alias, player2_alias) VALUES (?, 2, 1, ?, ?)',
-          [tournamentId, winners[0], winners[1]],
-          (err) => {
-            if (err) reject(err);
-            else resolve();
-          }
-        );
-      });
+      if (isLastRound) {
+        // 最終ラウンド完了、トーナメント終了
+        await new Promise((resolve, reject) => {
+          db.run(
+            'UPDATE tournaments SET status = "completed", completed_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [tournamentId],
+            (err) => {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
 
-      return {
-        message: 'Match result recorded. Final match created!',
-        next_match: { round: 2, player1: winners[0], player2: winners[1] }
-      };
-    } else if (allCompleted && currentMatch.round === 2) {
-      // 決勝完了、トーナメント終了
-      await new Promise((resolve, reject) => {
-        db.run(
-          'UPDATE tournaments SET status = "completed", completed_at = CURRENT_TIMESTAMP WHERE id = ?',
-          [tournamentId],
-          (err) => {
-            if (err) reject(err);
-            else resolve();
-          }
-        );
-      });
+        return {
+          message: 'Tournament completed!',
+          champion: winner_alias
+        };
+      } else {
+        // 次のラウンドの試合を生成
+        const nextRound = currentMatch.round + 1;
+        const matchesInNextRound = winners.length / 2;
 
-      return {
-        message: 'Tournament completed!',
-        champion: winner_alias
-      };
+        for (let i = 0; i < matchesInNextRound; i++) {
+          await new Promise((resolve, reject) => {
+            db.run(
+              'INSERT INTO matches (tournament_id, round, match_number, player1_alias, player2_alias) VALUES (?, ?, ?, ?, ?)',
+              [tournamentId, nextRound, i + 1, winners[i * 2], winners[i * 2 + 1]],
+              (err) => {
+                if (err) reject(err);
+                else resolve();
+              }
+            );
+          });
+        }
+
+        const roundName = nextRound === totalRounds ? '決勝' :
+                         nextRound === totalRounds - 1 ? '準決勝' :
+                         `第${nextRound}ラウンド`;
+
+        return {
+          message: `Match result recorded. ${roundName} matches created!`,
+          next_round: nextRound,
+          next_matches: Array.from({ length: matchesInNextRound }, (_, i) => ({
+            round: nextRound,
+            match: i + 1,
+            player1: winners[i * 2],
+            player2: winners[i * 2 + 1]
+          }))
+        };
+      }
     }
 
     return { message: 'Match result recorded successfully' };

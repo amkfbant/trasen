@@ -136,6 +136,16 @@ function render() {
             <input type="text" id="tournamentName" name="name" required
                    style="padding: 8px; width: 300px; margin-top: 5px;">
           </div>
+          <div style="margin: 10px 0;">
+            <label for="maxPlayers">参加者数:</label><br>
+            <select id="maxPlayers" name="max_players" required
+                    style="padding: 8px; width: 150px; margin-top: 5px;">
+              <option value="2">2人 (1試合)</option>
+              <option value="4" selected>4人 (準決勝+決勝)</option>
+              <option value="8">8人 (3ラウンド)</option>
+              <option value="16">16人 (4ラウンド)</option>
+            </select>
+          </div>
           <button type="submit" style="padding: 10px 20px; margin-top: 10px;">トーナメント作成</button>
         </form>
         <div id="createMessage" style="margin-top: 15px;"></div>
@@ -290,6 +300,7 @@ function setupCreateTournamentForm() {
 
     const formData = new FormData(form);
     const name = formData.get("name") as string;
+    const max_players = parseInt(formData.get("max_players") as string);
 
     try {
       const response = await fetch("http://localhost:3000/tournaments", {
@@ -297,7 +308,7 @@ function setupCreateTournamentForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, max_players }),
       });
 
       const data = await response.json();
@@ -452,7 +463,7 @@ async function loadTournamentDetails() {
     `;
 
     if (tournament.status === 'waiting') {
-      if (players.length === 4) {
+      if (players.length === tournament.max_players) {
         html += `
           <button onclick="startTournament(${tournamentId})"
                   style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; margin: 10px 0;">
@@ -460,47 +471,51 @@ async function loadTournamentDetails() {
           </button>
         `;
       } else {
-        html += `<p style='color: orange;'>4人の参加者が必要です。現在: ${players.length}人</p>`;
+        html += `<p style='color: orange;'>${tournament.max_players}人の参加者が必要です。現在: ${players.length}人</p>`;
       }
     } else if (tournament.status === 'in_progress') {
       html += "<h5>試合状況</h5>";
 
-      const round1Matches = matches.filter((m: any) => m.round === 1);
-      const round2Matches = matches.filter((m: any) => m.round === 2);
-
-      // 準決勝
-      html += "<h6>準決勝</h6>";
-      round1Matches.forEach((match: any) => {
-        html += `
-          <div style="border: 1px solid #ccc; padding: 10px; margin: 5px 0; border-radius: 5px;">
-            <strong>試合${match.match_number}:</strong> ${match.player1_alias} vs ${match.player2_alias}
-            ${match.status === 'completed'
-              ? `<br><span style="color: green;">結果: ${match.winner_alias} 勝利 (${match.player1_score}-${match.player2_score})</span>`
-              : `<br><button onclick="showResultForm(${match.id}, '${match.player1_alias}', '${match.player2_alias}')"
-                          style="padding: 5px 10px; margin-top: 5px;">結果入力</button>`
-            }
-          </div>
-        `;
+      // ラウンド別に試合を整理
+      const roundMatches: { [key: number]: any[] } = {};
+      matches.forEach((match: any) => {
+        if (!roundMatches[match.round]) {
+          roundMatches[match.round] = [];
+        }
+        roundMatches[match.round].push(match);
       });
 
-      // 決勝
-      if (round2Matches.length > 0) {
-        html += "<h6>決勝</h6>";
-        round2Matches.forEach((match: any) => {
+      const totalRounds = Math.log2(tournament.max_players);
+
+      // 各ラウンドを表示
+      Object.keys(roundMatches).sort((a, b) => parseInt(a) - parseInt(b)).forEach((roundNum: string) => {
+        const round = parseInt(roundNum);
+        const roundName = round === totalRounds ? '決勝' :
+                         round === totalRounds - 1 ? '準決勝' :
+                         round === 1 ? '1回戦' :
+                         `第${round}ラウンド`;
+
+        html += `<h6>${roundName}</h6>`;
+
+        roundMatches[round].forEach((match: any) => {
+          const isLastRound = round === totalRounds;
           html += `
             <div style="border: 1px solid #ccc; padding: 10px; margin: 5px 0; border-radius: 5px;">
-              <strong>決勝:</strong> ${match.player1_alias} vs ${match.player2_alias}
+              <strong>試合${match.match_number}:</strong> ${match.player1_alias} vs ${match.player2_alias}
               ${match.status === 'completed'
-                ? `<br><span style="color: gold;">🏆 優勝: ${match.winner_alias} (${match.player1_score}-${match.player2_score})</span>`
+                ? isLastRound
+                  ? `<br><span style="color: gold;">🏆 優勝: ${match.winner_alias} (${match.player1_score}-${match.player2_score})</span>`
+                  : `<br><span style="color: green;">結果: ${match.winner_alias} 勝利 (${match.player1_score}-${match.player2_score})</span>`
                 : `<br><button onclick="showResultForm(${match.id}, '${match.player1_alias}', '${match.player2_alias}')"
                             style="padding: 5px 10px; margin-top: 5px;">結果入力</button>`
               }
             </div>
           `;
         });
-      }
+      });
     } else if (tournament.status === 'completed') {
-      const finalMatch = matches.find((m: any) => m.round === 2 && m.status === 'completed');
+      const totalRounds = Math.log2(tournament.max_players);
+      const finalMatch = matches.find((m: any) => m.round === totalRounds && m.status === 'completed');
       html += `<h5 style="color: gold;">🏆 トーナメント完了！</h5>`;
       html += `<p><strong>優勝者:</strong> ${finalMatch?.winner_alias}</p>`;
     }

@@ -1,19 +1,37 @@
 export class TournamentUI {
   static generateHomePageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>Welcome to ft_transcendence</h2>
       <p>A modern web-based Pong game with tournament system.</p>
       <ul>
-        <li><a href="#/register">ユーザー登録</a> - 新規ユーザー登録</li>
-        <li><a href="#/login">ログイン</a> - 既存ユーザーログイン</li>
+        ${!isLoggedIn ? `
+          <li><a href="#/register">ユーザー登録</a> - 新規ユーザー登録</li>
+          <li><a href="#/login">ログイン</a> - 既存ユーザーログイン</li>
+        ` : `
+          <li><a href="#/profile">プロフィール</a> - あなたのプロフィールと統計</li>
+          <li><a href="#/search">ユーザー検索</a> - 他のユーザーを検索</li>
+          <li><a href="#/friends">友達</a> - 友達リストと申請</li>
+          <li><a href="#/match-history">試合履歴</a> - あなたの試合記録</li>
+        `}
         <li><a href="#/game">ゲーム</a> - Pongゲームをプレイ</li>
         <li><a href="#/tournament">トーナメント</a> - トーナメントシステム</li>
       </ul>
@@ -21,14 +39,25 @@ export class TournamentUI {
   }
 
   static generateRegisterPageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>Register</h2>
       <form id="registerForm">
@@ -53,14 +82,25 @@ export class TournamentUI {
   }
 
   static generateLoginPageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>Login</h2>
       <form id="loginForm">
@@ -85,14 +125,25 @@ export class TournamentUI {
   }
 
   static generateGamePageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>Pong</h2>
       <canvas id="game" width="800" height="480"
@@ -102,14 +153,25 @@ export class TournamentUI {
   }
 
   static generateAboutPageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>About ft_transcendence</h2>
       <p>42 School project - A modern web-based Pong game with tournaments.</p>
@@ -117,14 +179,25 @@ export class TournamentUI {
   }
 
   static generateTournamentPageHTML(): string {
+    const isLoggedIn = localStorage.getItem('currentUser');
+    const userNav = isLoggedIn ? `
+        <a href="#/profile">Profile</a> |
+        <a href="#/search">Search Users</a> |
+        <a href="#/friends">Friends</a> |
+        <a href="#/match-history">Match History</a> |
+    ` : `
+        <a href="#/register">Register</a> |
+        <a href="#/login">Login</a> |
+    `;
+
     return `
       <nav>
         <a href="#/">Home</a> |
-        <a href="#/register">Register</a> |
-        <a href="#/login">Login</a> |
+        ${userNav}
         <a href="#/game">Game</a> |
         <a href="#/tournament">Tournament</a> |
         <a href="#/about">About</a>
+        ${isLoggedIn ? ' | <a href="#" onclick="logout()">Logout</a>' : ''}
       </nav>
       <h2>Tournament</h2>
 
@@ -152,9 +225,12 @@ export class TournamentUI {
         </form>
       </div>
 
-      <!-- トーナメント参加フォーム -->
-      <div style="margin-bottom: 30px; padding: 20px; border: 2px solid #ddd; border-radius: 8px;">
-        <h3>トーナメントに参加</h3>
+      <!-- トーナメント参加フォーム（トークン方式） -->
+      <div style="margin-bottom: 30px; padding: 20px; border: 2px solid #007bff; border-radius: 8px; background: #f8f9ff;">
+        <h3>🎮 トーナメントに参加（トークン方式）</h3>
+        <p style="color: #666; margin-bottom: 15px;">
+          アカウント登録なしでも参加可能です。エイリアスを入力してトーナメントに参加しましょう！
+        </p>
         <form id="joinTournamentForm">
           <div style="margin: 10px 0;">
             <label for="tournamentId">トーナメントID:</label><br>
@@ -164,13 +240,20 @@ export class TournamentUI {
           <div style="margin: 10px 0;">
             <label for="playerAlias">プレイヤー名 (エイリアス):</label><br>
             <input type="text" id="playerAlias" name="alias" required
+                   placeholder="例: Player1, ゲーマー太郎"
                    style="padding: 8px; width: 300px; margin-top: 5px;">
           </div>
           <button type="submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px;">
-            参加
+            🚀 トーナメント参加
           </button>
         </form>
       </div>
+
+      <!-- セッション情報表示エリア -->
+      <div id="sessionInfo"></div>
+
+      <!-- 参加者一覧表示エリア -->
+      <div id="tournamentPlayers"></div>
 
       <!-- トーナメント一覧 -->
       <div style="margin-bottom: 30px;">

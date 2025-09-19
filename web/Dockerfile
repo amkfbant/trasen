@@ -16,8 +16,9 @@ RUN npm install --no-audit --no-fund typescript http-server
 # コンパイル（dist にJSを出力）
 RUN rm -rf dist && npx tsc
 
-# index.html を dist に
+# index.html と styles を dist に
 RUN mkdir -p dist && cp index.html dist/index.html
+RUN mkdir -p dist/src/styles && cp -r src/styles/* dist/src/styles/
 
 EXPOSE 5173
 CMD ["npx", "http-server", "dist", "-p", "5173"]

@@ -40,7 +40,14 @@ class TournamentService {
   // トーナメント一覧取得
   async getAllTournaments() {
     return new Promise((resolve, reject) => {
-      db.all('SELECT * FROM tournaments ORDER BY created_at DESC', (err, rows) => {
+      db.all(`
+        SELECT t.*, 
+               COUNT(tp.id) as player_count
+        FROM tournaments t
+        LEFT JOIN tournament_players tp ON t.id = tp.tournament_id
+        GROUP BY t.id
+        ORDER BY t.created_at DESC
+      `, (err, rows) => {
         if (err) reject(err);
         else resolve(rows || []);
       });
@@ -51,7 +58,7 @@ class TournamentService {
   async getTournamentPlayers(tournamentId) {
     return new Promise((resolve, reject) => {
       db.all(
-        'SELECT alias FROM tournament_players WHERE tournament_id = ? ORDER BY joined_at ASC',
+        'SELECT player_alias as alias, user_id FROM tournament_players WHERE tournament_id = ? ORDER BY created_at ASC',
         [tournamentId],
         (err, rows) => {
           if (err) reject(err);
@@ -87,7 +94,7 @@ class TournamentService {
     // エイリアス重複確認
     const existingPlayer = await new Promise((resolve, reject) => {
       db.get(
-        'SELECT * FROM tournament_players WHERE tournament_id = ? AND alias = ?',
+        'SELECT * FROM tournament_players WHERE tournament_id = ? AND player_alias = ?',
         [tournamentId, alias],
         (err, row) => {
           if (err) reject(err);
@@ -103,7 +110,7 @@ class TournamentService {
     // 参加者追加
     return new Promise((resolve, reject) => {
       db.run(
-        'INSERT INTO tournament_players (tournament_id, alias, user_id) VALUES (?, ?, ?)',
+        'INSERT INTO tournament_players (tournament_id, player_alias, user_id) VALUES (?, ?, ?)',
         [tournamentId, alias, userId],
         function(err) {
           if (err) reject(err);
@@ -124,8 +131,10 @@ class TournamentService {
         tournament_id: tournamentId,
         round: 1,
         match_number: 1,
-        player1_alias: players[0].alias,
-        player2_alias: players[1].alias
+        player1_alias: players[0].player_alias || players[0].alias,
+        player2_alias: players[1].player_alias || players[1].alias,
+        player1_id: players[0].user_id || null,
+        player2_id: players[1].user_id || null
       });
     } else if (totalPlayers === 4) {
       // 4人: 準決勝2試合
@@ -134,15 +143,19 @@ class TournamentService {
           tournament_id: tournamentId,
           round: 1,
           match_number: 1,
-          player1_alias: players[0].alias,
-          player2_alias: players[1].alias
+          player1_alias: players[0].player_alias || players[0].alias,
+          player2_alias: players[1].player_alias || players[1].alias,
+          player1_id: players[0].user_id || null,
+          player2_id: players[1].user_id || null
         },
         {
           tournament_id: tournamentId,
           round: 1,
           match_number: 2,
-          player1_alias: players[2].alias,
-          player2_alias: players[3].alias
+          player1_alias: players[2].player_alias || players[2].alias,
+          player2_alias: players[3].player_alias || players[3].alias,
+          player1_id: players[2].user_id || null,
+          player2_id: players[3].user_id || null
         }
       );
     } else if (totalPlayers === 8) {
@@ -152,8 +165,10 @@ class TournamentService {
           tournament_id: tournamentId,
           round: 1,
           match_number: i + 1,
-          player1_alias: players[i * 2].alias,
-          player2_alias: players[i * 2 + 1].alias
+          player1_alias: players[i * 2].player_alias || players[i * 2].alias,
+          player2_alias: players[i * 2 + 1].player_alias || players[i * 2 + 1].alias,
+          player1_id: players[i * 2].user_id || null,
+          player2_id: players[i * 2 + 1].user_id || null
         });
       }
     } else if (totalPlayers === 16) {
@@ -163,8 +178,10 @@ class TournamentService {
           tournament_id: tournamentId,
           round: 1,
           match_number: i + 1,
-          player1_alias: players[i * 2].alias,
-          player2_alias: players[i * 2 + 1].alias
+          player1_alias: players[i * 2].player_alias || players[i * 2].alias,
+          player2_alias: players[i * 2 + 1].player_alias || players[i * 2 + 1].alias,
+          player1_id: players[i * 2].user_id || null,
+          player2_id: players[i * 2 + 1].user_id || null
         });
       }
     }
@@ -428,7 +445,7 @@ class TournamentService {
   async _completeTournament(tournamentId, finalMatch) {
     return new Promise((resolve, reject) => {
       db.run(
-        'UPDATE tournaments SET status = "completed", completed_at = CURRENT_TIMESTAMP WHERE id = ?',
+        'UPDATE tournaments SET status = "completed" WHERE id = ?',
         [tournamentId],
         (err) => {
           if (err) reject(err);

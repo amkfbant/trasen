@@ -40,8 +40,9 @@ export class FormHandlers {
       try {
         const result = await ApiService.loginUser(username, password) as any;
         messageDiv.innerHTML = '<p style="color: green;">Login successful!</p>';
-        localStorage.setItem('user', JSON.stringify(result.user));
+        localStorage.setItem('currentUser', JSON.stringify(result.user));
         form.reset();
+        window.location.hash = '#/profile';
       } catch (error) {
         messageDiv.innerHTML = `<p style="color: red;">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>`;
       }

@@ -3,7 +3,9 @@ const bcrypt = require('bcrypt');
 // データベースのモック
 const mockDb = {
   get: jest.fn(),
-  run: jest.fn()
+  run: jest.fn(),
+  all: jest.fn(),
+  serialize: jest.fn((fn) => fn())
 };
 
 // データベースモジュールをモック
@@ -159,5 +161,406 @@ describe('UserService', () => {
     test('should throw error for missing password', async () => {
       await expect(UserService.authenticateUser('username', '')).rejects.toThrow('Username and password are required');
     });
+  });
+
+  // User Management拡張機能のテスト
+  describe('User Management Extended Features', () => {
+
+    describe('findUserById', () => {
+      test('should find user by ID', async () => {
+        const mockUser = { id: 1, username: 'testuser', display_name: 'Test User' };
+        mockDb.get.mockImplementation((sql, params, callback) => {
+          callback(null, mockUser);
+        });
+
+        const result = await UserService.findUserById(1);
+
+        expect(mockDb.get).toHaveBeenCalledWith(
+          'SELECT * FROM users WHERE id = ?',
+          [1],
+          expect.any(Function)
+        );
+        expect(result).toEqual(mockUser);
+      });
+    });
+
+    describe('searchUsers', () => {
+      test('should search users by query', async () => {
+        const mockUsers = [
+          { id: 1, username: 'alice', display_name: 'Alice' },
+          { id: 2, username: 'bob', display_name: 'Bob' }
+        ];
+        mockDb.all.mockImplementation((sql, params, callback) => {
+          callback(null, mockUsers);
+        });
+
+        const result = await UserService.searchUsers('al');
+
+        expect(mockDb.all).toHaveBeenCalledWith(
+          expect.stringContaining('WHERE username LIKE ? ESCAPE'),
+          ['%al%', '%al%', '%al%'],
+          expect.any(Function)
+        );
+        expect(result).toEqual(mockUsers);
+      });
+    });
+
+    describe('updateProfile', () => {
+      test('should update user profile successfully', async () => {
+        // email重複チェック
+        mockDb.get.mockImplementation((sql, params, callback) => {
+          callback(null, null);
+        });
+
+        mockDb.run.mockImplementation((sql, params, callback) => {
+          callback.call({ changes: 1 }, null);
+        });
+
+        const profileData = {
+          display_name: 'New Name',
+          email: 'new@email.com',
+          bio: 'New bio'
+        };
+
+        const result = await UserService.updateProfile(1, profileData);
+
+        expect(result).toEqual({ message: 'Profile updated successfully' });
+      });
+
+      test('should reject duplicate email', async () => {
+        const existingUser = { id: 2 };
+        mockDb.get.mockImplementation((sql, params, callback) => {
+          callback(null, existingUser);
+        });
+
+        const profileData = { email: 'existing@email.com' };
+
+        await expect(UserService.updateProfile(1, profileData))
+          .rejects.toThrow('Email already exists');
+      });
+    });
+
+    describe('updateOnlineStatus', () => {
+      test('should update online status', async () => {
+        mockDb.run.mockImplementation((sql, params, callback) => {
+          callback(null);
+        });
+
+        const result = await UserService.updateOnlineStatus(1, true);
+
+        expect(mockDb.run).toHaveBeenCalledWith(
+          expect.stringContaining('UPDATE users'),
+          [true, 1],
+          expect.any(Function)
+        );
+        expect(result).toEqual({ message: 'Online status updated' });
+      });
+    });
+
+    describe('getUserProfile', () => {
+      test('should get user profile', async () => {
+        const mockProfile = {
+          id: 1,
+          username: 'testuser',
+          display_name: 'Test User',
+          wins: 5,
+          losses: 2
+        };
+        mockDb.get.mockImplementation((sql, params, callback) => {
+          callback(null, mockProfile);
+        });
+
+        const result = await UserService.getUserProfile(1);
+
+        expect(result).toEqual(mockProfile);
+      });
+
+      test('should reject non-existing user', async () => {
+        mockDb.get.mockImplementation((sql, params, callback) => {
+          callback(null, null);
+        });
+
+        await expect(UserService.getUserProfile(999))
+          .rejects.toThrow('User not found');
+      });
+    });
+
+    describe('sendFriendRequest', () => {
+      test('should send friend request successfully', async () => {
+        // 相手ユーザー存在チェック
+        const friendUser = { id: 2, username: 'friend' };
+        mockDb.get
+          .mockImplementationOnce((sql, params, callback) => {
+            callback(null, friendUser);
+          })
+          // 既存関係チェック
+          .mockImplementationOnce((sql, params, callback) => {
+            callback(null, null);
+          });
+
+        mockDb.run.mockImplementation((sql, params, callback) => {
+          callback.call({ lastID: 1 }, null);
+        });
+
+        const result = await UserService.sendFriendRequest(1, 2);
+
+        expect(result).toEqual({ message: 'Friend request sent', id: 1 });
+      });
+
+      test('should reject self friend request', async () => {
+        await expect(UserService.sendFriendRequest(1, 1))
+          .rejects.toThrow('Cannot add yourself as friend');
+      });
+
+      test('should reject request to non-existing user', async () => {
+        mockDb.get.mockImplementation((sql, params, callback) => {
+          callback(null, null);
+        });
+
+        await expect(UserService.sendFriendRequest(1, 999))
+          .rejects.toThrow('User not found');
+      });
+    });
+
+    describe('getFriends', () => {
+      test('should get user friends', async () => {
+        const mockFriends = [
+          { id: 2, username: 'friend1', display_name: 'Friend One' },
+          { id: 3, username: 'friend2', display_name: 'Friend Two' }
+        ];
+        mockDb.all.mockImplementation((sql, params, callback) => {
+          callback(null, mockFriends);
+        });
+
+        const result = await UserService.getFriends(1);
+
+        expect(result).toEqual(mockFriends);
+      });
+    });
+
+    describe('getFriendRequests', () => {
+      test('should get pending friend requests', async () => {
+        const mockRequests = [
+          { id: 1, user_id: 2, username: 'requester1', display_name: 'Requester One' },
+          { id: 2, user_id: 3, username: 'requester2', display_name: 'Requester Two' }
+        ];
+        mockDb.all.mockImplementation((sql, params, callback) => {
+          callback(null, mockRequests);
+        });
+
+        const result = await UserService.getFriendRequests(1);
+
+        expect(mockDb.all).toHaveBeenCalledWith(
+          expect.stringContaining('WHERE f.friend_id = ? AND f.status = \'pending\''),
+          [1],
+          expect.any(Function)
+        );
+        expect(result).toEqual(mockRequests);
+      });
+
+      test('should return empty array when no requests', async () => {
+        mockDb.all.mockImplementation((sql, params, callback) => {
+          callback(null, []);
+        });
+
+        const result = await UserService.getFriendRequests(1);
+
+        expect(result).toEqual([]);
+      });
+
+      test('should handle database errors', async () => {
+        mockDb.all.mockImplementation((sql, params, callback) => {
+          callback(new Error('Database error'), null);
+        });
+
+        await expect(UserService.getFriendRequests(1))
+          .rejects.toThrow('Database error');
+      });
+    });
+
+    describe('acceptFriendRequest', () => {
+      test('should accept friend request successfully', async () => {
+        const mockRequestData = { user_id: 2, friend_id: 1, status: 'pending' };
+        
+        // Mock transaction methods
+        mockDb.run
+          .mockImplementationOnce((sql, params, callback) => {
+            callback.call({ changes: 1 }, null); // BEGIN TRANSACTION
+          })
+          .mockImplementationOnce((sql, params, callback) => {
+            callback.call({ changes: 1 }, null); // UPDATE friends
+          })
+          .mockImplementationOnce((sql, params, callback) => {
+            callback.call({ changes: 1 }, null); // INSERT friends
+          })
+          .mockImplementationOnce((sql, params, callback) => {
+            callback.call({ changes: 1 }, null); // COMMIT
+          });
+
+        mockDb.get
+          .mockImplementationOnce((sql, params, callback) => {
+            callback(null, mockRequestData); // Get request data
+          })
+          .mockImplementationOnce((sql, params, callback) => {
+            callback(null, null); // Check existing reverse relationship
+          });
+
+        const result = await UserService.acceptFriendRequest(1, 1);
+
+        expect(result).toEqual({ message: 'Friend request accepted' });
+      });
+
+      test('should reject non-existing friend request', async () => {
+        mockDb.run.mockImplementation((sql, params, callback) => {
+          callback.call({ changes: 1 }, null); // BEGIN TRANSACTION
+        });
+
+        mockDb.get.mockImplementation((sql, params, callback) => {
+          callback(null, null); // No request found
+        });
+
+        await expect(UserService.acceptFriendRequest(1, 999))
+          .rejects.toThrow('Friend request not found or already processed');
+      });
+
+      test('should handle database errors during transaction', async () => {
+        mockDb.run.mockImplementation((sql, params, callback) => {
+          callback(new Error('Database error'), null);
+        });
+
+        await expect(UserService.acceptFriendRequest(1, 1))
+          .rejects.toThrow('Database error');
+      });
+    });
+
+    describe('updateOnlineStatus', () => {
+      test('should update online status successfully', async () => {
+        mockDb.run.mockImplementation((sql, params, callback) => {
+          callback.call({ changes: 1 }, null);
+        });
+
+        const result = await UserService.updateOnlineStatus(1, true);
+
+        expect(mockDb.run).toHaveBeenCalledWith(
+          expect.stringContaining('UPDATE users'),
+          [true, 1],
+          expect.any(Function)
+        );
+        expect(result).toEqual({ message: 'Online status updated' });
+      });
+
+      test('should handle database errors', async () => {
+        mockDb.run.mockImplementation((sql, params, callback) => {
+          callback(new Error('Database error'), null);
+        });
+
+        await expect(UserService.updateOnlineStatus(1, true))
+          .rejects.toThrow('Database error');
+      });
+    });
+
+    describe('getMatchHistory', () => {
+      test('should get user match history from matches table', async () => {
+        const mockHistory = [
+          {
+            id: 1,
+            tournament_id: 1,
+            player1_id: 1,
+            player2_id: 2,
+            player1_alias: 'Player1',
+            player2_alias: 'Player2',
+            winner_id: 1,
+            winner_alias: 'Player1',
+            player1_score: 3,
+            player2_score: 1,
+            status: 'completed',
+            completed_at: '2025-09-18 13:00:00',
+            player1_username: 'user1',
+            player2_username: 'user2',
+            winner_username: 'user1',
+            tournament_name: 'Test Tournament'
+          }
+        ];
+        mockDb.all.mockImplementation((sql, params, callback) => {
+          callback(null, mockHistory);
+        });
+
+        const result = await UserService.getMatchHistory(1, 10);
+
+        expect(mockDb.all).toHaveBeenCalledWith(
+          expect.stringContaining('FROM matches m'),
+          [1, 1, 10],
+          expect.any(Function)
+        );
+        expect(mockDb.all).toHaveBeenCalledWith(
+          expect.stringContaining('WHERE (m.player1_id = ? OR m.player2_id = ?) AND m.status = \'completed\''),
+          [1, 1, 10],
+          expect.any(Function)
+        );
+        expect(result).toEqual(mockHistory);
+      });
+
+      test('should handle empty match history', async () => {
+        mockDb.all.mockImplementation((sql, params, callback) => {
+          callback(null, []);
+        });
+
+        const result = await UserService.getMatchHistory(1, 10);
+
+        expect(result).toEqual([]);
+      });
+
+      test('should handle database errors in getMatchHistory', async () => {
+        mockDb.all.mockImplementation((sql, params, callback) => {
+          callback(new Error('Database error'), null);
+        });
+
+        await expect(UserService.getMatchHistory(1, 10)).rejects.toThrow('Database error');
+      });
+    });
+
+    describe('getUserStats', () => {
+      test('should get user statistics from matches table', async () => {
+        const mockStats = { wins: 5, losses: 2, total_games: 7, win_rate: 71.43 };
+        const mockGameTypeStats = [{ game_type: 'tournament', games_played: 5, wins: 3, losses: 2 }];
+        const mockRecentMatches = [{ won: 1, played_at: '2025-09-18 13:00:00' }];
+
+        mockDb.get.mockImplementation((sql, params, callback) => {
+          callback(null, mockStats);
+        });
+
+        mockDb.all
+          .mockImplementationOnce((sql, params, callback) => {
+            // First call for game type stats from matches table
+            expect(sql).toEqual(expect.stringContaining('FROM matches'));
+            callback(null, mockGameTypeStats);
+          })
+          .mockImplementationOnce((sql, params, callback) => {
+            // Second call for recent performance from matches table
+            expect(sql).toEqual(expect.stringContaining('FROM matches'));
+            expect(sql).toEqual(expect.stringContaining('completed_at'));
+            callback(null, mockRecentMatches);
+          });
+
+        const result = await UserService.getUserStats(1);
+
+        expect(result).toEqual({
+          overall: mockStats,
+          by_game_type: mockGameTypeStats,
+          recent_performance: mockRecentMatches
+        });
+      });
+
+      test('should handle database errors in getUserStats', async () => {
+        mockDb.get.mockImplementation((sql, params, callback) => {
+          callback(new Error('Database error'), null);
+        });
+
+        await expect(UserService.getUserStats(1)).rejects.toThrow('Database error');
+      });
+    });
+
+    // Note: recordMatchHistory tests are complex due to database serialization
+    // and are covered by integration tests in app.test.js
   });
 });

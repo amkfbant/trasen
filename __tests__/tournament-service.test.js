@@ -73,7 +73,9 @@ describe('TournamentService', () => {
         round: 1,
         match_number: 1,
         player1_alias: 'Player1',
-        player2_alias: 'Player2'
+        player2_alias: 'Player2',
+        player1_id: null,
+        player2_id: null
       });
     });
 
@@ -90,14 +92,18 @@ describe('TournamentService', () => {
         round: 1,
         match_number: 1,
         player1_alias: 'Player1',
-        player2_alias: 'Player2'
+        player2_alias: 'Player2',
+        player1_id: null,
+        player2_id: null
       });
       expect(matches[1]).toEqual({
         tournament_id: tournamentId,
         round: 1,
         match_number: 2,
         player1_alias: 'Player3',
-        player2_alias: 'Player4'
+        player2_alias: 'Player4',
+        player1_id: null,
+        player2_id: null
       });
     });
 
@@ -112,7 +118,9 @@ describe('TournamentService', () => {
           round: 1,
           match_number: i + 1,
           player1_alias: `Player${i * 2 + 1}`,
-          player2_alias: `Player${i * 2 + 2}`
+          player2_alias: `Player${i * 2 + 2}`,
+          player1_id: null,
+          player2_id: null
         });
       }
     });
@@ -128,9 +136,62 @@ describe('TournamentService', () => {
           round: 1,
           match_number: i + 1,
           player1_alias: `Player${i * 2 + 1}`,
-          player2_alias: `Player${i * 2 + 2}`
+          player2_alias: `Player${i * 2 + 2}`,
+          player1_id: null,
+          player2_id: null
         });
       }
+    });
+
+    test('should generate bracket with user IDs for logged-in players', () => {
+      const players = [
+        { alias: 'Player1', user_id: 1 },
+        { alias: 'Player2', user_id: 2 }
+      ];
+      const matches = TournamentService.generateBracket(players, tournamentId);
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toEqual({
+        tournament_id: tournamentId,
+        round: 1,
+        match_number: 1,
+        player1_alias: 'Player1',
+        player2_alias: 'Player2',
+        player1_id: 1,
+        player2_id: 2
+      });
+    });
+
+    test('should handle mix of logged-in and anonymous players', () => {
+      const players = [
+        { alias: 'LoggedPlayer', user_id: 1 },
+        { alias: 'AnonymousPlayer', user_id: null }
+      ];
+      const matches = TournamentService.generateBracket(players, tournamentId);
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toEqual({
+        tournament_id: tournamentId,
+        round: 1,
+        match_number: 1,
+        player1_alias: 'LoggedPlayer',
+        player2_alias: 'AnonymousPlayer',
+        player1_id: 1,
+        player2_id: null
+      });
+    });
+
+    test('should handle player_alias vs alias field names', () => {
+      const players = [
+        { player_alias: 'Player1', user_id: 1 },
+        { alias: 'Player2', user_id: 2 }
+      ];
+      const matches = TournamentService.generateBracket(players, tournamentId);
+
+      expect(matches[0].player1_alias).toBe('Player1');
+      expect(matches[0].player2_alias).toBe('Player2');
+      expect(matches[0].player1_id).toBe(1);
+      expect(matches[0].player2_id).toBe(2);
     });
   });
 
@@ -291,7 +352,7 @@ describe('TournamentService', () => {
       const result = await TournamentService.getAllTournaments();
 
       expect(mockDb.all).toHaveBeenCalledWith(
-        'SELECT * FROM tournaments ORDER BY created_at DESC',
+        expect.stringContaining('FROM tournaments t'),
         expect.any(Function)
       );
       expect(result).toEqual(tournaments);

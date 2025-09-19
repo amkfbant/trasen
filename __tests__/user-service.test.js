@@ -460,15 +460,25 @@ describe('UserService', () => {
     });
 
     describe('getMatchHistory', () => {
-      test('should get user match history', async () => {
+      test('should get user match history from matches table', async () => {
         const mockHistory = [
           {
             id: 1,
+            tournament_id: 1,
             player1_id: 1,
             player2_id: 2,
+            player1_alias: 'Player1',
+            player2_alias: 'Player2',
             winner_id: 1,
-            game_type: '1v1',
-            played_at: '2025-09-18 13:00:00'
+            winner_alias: 'Player1',
+            player1_score: 3,
+            player2_score: 1,
+            status: 'completed',
+            completed_at: '2025-09-18 13:00:00',
+            player1_username: 'user1',
+            player2_username: 'user2',
+            winner_username: 'user1',
+            tournament_name: 'Test Tournament'
           }
         ];
         mockDb.all.mockImplementation((sql, params, callback) => {
@@ -478,18 +488,41 @@ describe('UserService', () => {
         const result = await UserService.getMatchHistory(1, 10);
 
         expect(mockDb.all).toHaveBeenCalledWith(
-          expect.stringContaining('WHERE mh.player1_id = ? OR mh.player2_id = ?'),
+          expect.stringContaining('FROM matches m'),
+          [1, 1, 10],
+          expect.any(Function)
+        );
+        expect(mockDb.all).toHaveBeenCalledWith(
+          expect.stringContaining('WHERE (m.player1_id = ? OR m.player2_id = ?) AND m.status = \'completed\''),
           [1, 1, 10],
           expect.any(Function)
         );
         expect(result).toEqual(mockHistory);
       });
+
+      test('should handle empty match history', async () => {
+        mockDb.all.mockImplementation((sql, params, callback) => {
+          callback(null, []);
+        });
+
+        const result = await UserService.getMatchHistory(1, 10);
+
+        expect(result).toEqual([]);
+      });
+
+      test('should handle database errors in getMatchHistory', async () => {
+        mockDb.all.mockImplementation((sql, params, callback) => {
+          callback(new Error('Database error'), null);
+        });
+
+        await expect(UserService.getMatchHistory(1, 10)).rejects.toThrow('Database error');
+      });
     });
 
     describe('getUserStats', () => {
-      test('should get user statistics', async () => {
+      test('should get user statistics from matches table', async () => {
         const mockStats = { wins: 5, losses: 2, total_games: 7, win_rate: 71.43 };
-        const mockGameTypeStats = [{ game_type: '1v1', games_played: 5, wins: 3, losses: 2 }];
+        const mockGameTypeStats = [{ game_type: 'tournament', games_played: 5, wins: 3, losses: 2 }];
         const mockRecentMatches = [{ won: 1, played_at: '2025-09-18 13:00:00' }];
 
         mockDb.get.mockImplementation((sql, params, callback) => {
@@ -498,9 +531,14 @@ describe('UserService', () => {
 
         mockDb.all
           .mockImplementationOnce((sql, params, callback) => {
+            // First call for game type stats from matches table
+            expect(sql).toEqual(expect.stringContaining('FROM matches'));
             callback(null, mockGameTypeStats);
           })
           .mockImplementationOnce((sql, params, callback) => {
+            // Second call for recent performance from matches table
+            expect(sql).toEqual(expect.stringContaining('FROM matches'));
+            expect(sql).toEqual(expect.stringContaining('completed_at'));
             callback(null, mockRecentMatches);
           });
 
@@ -511,6 +549,14 @@ describe('UserService', () => {
           by_game_type: mockGameTypeStats,
           recent_performance: mockRecentMatches
         });
+      });
+
+      test('should handle database errors in getUserStats', async () => {
+        mockDb.get.mockImplementation((sql, params, callback) => {
+          callback(new Error('Database error'), null);
+        });
+
+        await expect(UserService.getUserStats(1)).rejects.toThrow('Database error');
       });
     });
 

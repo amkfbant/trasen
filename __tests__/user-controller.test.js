@@ -1,3 +1,9 @@
+// JWT のモック
+jest.mock('jsonwebtoken', () => ({
+  sign: jest.fn(() => 'mock.jwt.token'),
+  verify: jest.fn()
+}));
+
 // User Serviceのモック
 const mockUserService = {
   createUser: jest.fn(),
@@ -84,10 +90,13 @@ describe('UserController', () => {
 
       expect(mockUserService.authenticateUser).toHaveBeenCalledWith('testuser', 'password123');
       expect(mockUserService.updateOnlineStatus).toHaveBeenCalledWith(1, true);
-      expect(mockReply.send).toHaveBeenCalledWith({
-        message: 'Login successful',
-        user: userData
-      });
+      expect(mockReply.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Login successful',
+          user: userData,
+          token: expect.any(String)
+        })
+      );
     });
 
     test('should handle authentication errors', async () => {
@@ -383,6 +392,50 @@ describe('UserController', () => {
           message: 'Match history recorded',
           id: 1
         });
+      });
+    });
+
+    describe('login', () => {
+      test('should login and return JWT token', async () => {
+        const mockUser = { id: 1, username: 'testuser' };
+        mockUserService.authenticateUser.mockResolvedValue(mockUser);
+        mockUserService.updateOnlineStatus.mockResolvedValue();
+
+        mockRequest.body = { username: 'testuser', password: 'password123' };
+
+        await UserController.login(mockRequest, mockReply);
+
+        expect(mockUserService.authenticateUser).toHaveBeenCalledWith('testuser', 'password123');
+        expect(mockUserService.updateOnlineStatus).toHaveBeenCalledWith(1, true);
+        expect(mockReply.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            message: 'Login successful',
+            user: { id: 1, username: 'testuser' },
+            token: expect.any(String)
+          })
+        );
+      });
+
+      test('should handle invalid credentials', async () => {
+        mockUserService.authenticateUser.mockRejectedValue(new Error('Invalid username or password'));
+
+        mockRequest.body = { username: 'testuser', password: 'wrongpassword' };
+
+        await UserController.login(mockRequest, mockReply);
+
+        expect(mockReply.status).toHaveBeenCalledWith(400);
+        expect(mockReply.send).toHaveBeenCalledWith({ error: 'Invalid username or password' });
+      });
+
+      test('should handle missing credentials', async () => {
+        mockUserService.authenticateUser.mockRejectedValue(new Error('Invalid username or password'));
+        
+        mockRequest.body = { username: '', password: '' };
+
+        await UserController.login(mockRequest, mockReply);
+
+        expect(mockReply.status).toHaveBeenCalledWith(400);
+        expect(mockReply.send).toHaveBeenCalledWith({ error: 'Invalid username or password' });
       });
     });
 

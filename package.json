@@ -12,7 +12,8 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "bcrypt": "^5.1.0"
+    "bcrypt": "^5.1.0",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "jest": "^29.7.0",
@@ -23,7 +24,10 @@
       {
         "displayName": "api",
         "testEnvironment": "node",
-        "testMatch": ["<rootDir>/__tests__/*-service.test.js", "<rootDir>/__tests__/*-controller.test.js"],
+        "testMatch": [
+          "<rootDir>/__tests__/*-service.test.js",
+          "<rootDir>/__tests__/*-controller.test.js"
+        ],
         "collectCoverageFrom": [
           "api/services/**/*.js",
           "api/controllers/**/*.js",
@@ -33,7 +37,9 @@
       {
         "displayName": "web",
         "testEnvironment": "jsdom",
-        "testMatch": ["<rootDir>/__tests__/*-web.test.js"],
+        "testMatch": [
+          "<rootDir>/__tests__/*-web.test.js"
+        ],
         "collectCoverageFrom": [
           "web/src/**/*.ts",
           "!node_modules/**"
@@ -42,13 +48,21 @@
       {
         "displayName": "integration",
         "testEnvironment": "node",
-        "testMatch": ["<rootDir>/__tests__/*-integration.test.js"],
-        "setupFilesAfterEnv": ["<rootDir>/__tests__/setup.js"]
+        "testMatch": [
+          "<rootDir>/__tests__/*-integration.test.js"
+        ],
+        "setupFilesAfterEnv": [
+          "<rootDir>/__tests__/setup.js"
+        ]
       }
     ],
     "collectCoverage": false,
     "coverageDirectory": "coverage",
-    "coverageReporters": ["text", "lcov", "html"]
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ]
   },
   "license": "MIT"
 }

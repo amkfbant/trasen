@@ -127,7 +127,9 @@ export class TournamentSessionService {
           session_token_hash: tokenHash,
           player1_id: sessionInfo.userId,
           player2_id: null, // 対戦相手のID（必要に応じて）
-          winner_id: sessionInfo.userId // 勝者のID（必要に応じて）
+          ...(matchData.winner_alias && matchData.winner_alias === sessionInfo.alias
+            ? { winner_id: sessionInfo.userId }
+            : {})
         })
       });
 

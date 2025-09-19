@@ -139,3 +139,4 @@ describe('TournamentSessionService', () => {
   // due to complex JWT and crypto mocking requirements.
   // These are covered by integration tests.
 });
+

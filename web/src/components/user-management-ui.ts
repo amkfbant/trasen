@@ -273,7 +273,7 @@ export class UserManagementUI {
           </div>
           <div class="match-score">
             <div class="match-score-text">${userScore} - ${opponent.score}</div>
-            <div class="match-type">${match.game_type}</div>
+            <div class="match-type">${match.game_type ? match.game_type : 'Unknown'}</div>
             ${match.tournament_name ? `<div class="match-tournament">🏆 ${match.tournament_name}</div>` : ''}
           </div>
         </div>

@@ -28,8 +28,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
     
     // データベースファイルの権限を設定
     try {
-      fs.chmodSync(dbPath, 0o666);
-      console.log('データベースファイルの権限を設定しました');
+      fs.chmodSync(dbPath, 0o600);
+      console.log('データベースファイルの権限を設定しました (600)');
     } catch (chmodErr) {
       console.warn('データベースファイルの権限設定に失敗:', chmodErr.message);
     }

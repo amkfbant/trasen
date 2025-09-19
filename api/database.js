@@ -142,7 +142,8 @@ function initDatabase() {
       user_id INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (tournament_id) REFERENCES tournaments(id),
-      FOREIGN KEY (user_id) REFERENCES users(id)
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE (tournament_id, player_alias)
     )
   `, (err) => {
     if (err) {

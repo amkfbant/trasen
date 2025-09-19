@@ -38,9 +38,12 @@ export class FormHandlers {
       const messageDiv = document.getElementById('loginMessage')!;
 
       try {
-        const result = await ApiService.loginUser(username, password) as any;
+        const result = await ApiService.loginUser(username, password) as { user: any; token?: string };
         messageDiv.innerHTML = '<p style="color: green;">Login successful!</p>';
         localStorage.setItem('currentUser', JSON.stringify(result.user));
+        if (result.token) {
+          localStorage.setItem('authToken', result.token);
+        }
         form.reset();
 
         // Redirect to profile page
@@ -65,10 +68,12 @@ export class FormHandlers {
       const maxPlayers = parseInt(formData.get('max_players') as string);
 
       try {
-        const result = await ApiService.createTournament(name, maxPlayers) as any;
+        const result = await ApiService.createTournament(name, maxPlayers) as { tournament: { id: number } };
         alert(`Tournament created! Tournament ID: ${result.tournament.id}`);
         form.reset();
-        (window as any).loadTournamentList();
+        if ('loadTournamentList' in window && typeof (window as any).loadTournamentList === 'function') {
+          (window as any).loadTournamentList();
+        }
       } catch (error) {
         alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
@@ -90,7 +95,9 @@ export class FormHandlers {
         await ApiService.joinTournament(tournamentId, alias);
         alert('Successfully joined tournament!');
         form.reset();
-        (window as any).loadTournamentList();
+        if ('loadTournamentList' in window && typeof (window as any).loadTournamentList === 'function') {
+          (window as any).loadTournamentList();
+        }
       } catch (error) {
         alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }

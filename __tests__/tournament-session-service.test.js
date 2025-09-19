@@ -1,3 +1,6 @@
+// 環境変数を設定
+process.env.JWT_SECRET = 'test-secret-key';
+
 // データベースのモック
 const mockDb = {
   get: jest.fn(),

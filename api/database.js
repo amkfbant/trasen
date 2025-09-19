@@ -8,13 +8,13 @@ const dbPath = path.join(dataDir, 'ft_transcendence.db');
 
 // データディレクトリが存在しない場合は作成
 if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true, mode: 0o777 });
+  fs.mkdirSync(dataDir, { recursive: true, mode: 0o750 });
   console.log('データディレクトリを作成しました:', dataDir);
 }
 
 // データディレクトリの権限を設定
 try {
-  fs.chmodSync(dataDir, 0o777);
+  fs.chmodSync(dataDir, 0o750);
 } catch (err) {
   console.warn('データディレクトリの権限設定に失敗:', err.message);
 }

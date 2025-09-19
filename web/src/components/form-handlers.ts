@@ -38,18 +38,11 @@ export class FormHandlers {
       const messageDiv = document.getElementById('loginMessage')!;
 
       try {
-        const result = await ApiService.loginUser(username, password) as { user: any; token?: string };
+        const result = await ApiService.loginUser(username, password) as any;
         messageDiv.innerHTML = '<p style="color: green;">Login successful!</p>';
         localStorage.setItem('currentUser', JSON.stringify(result.user));
-        if (result.token) {
-          localStorage.setItem('authToken', result.token);
-        }
         form.reset();
-
-        // Redirect to profile page
-        setTimeout(() => {
-          window.location.hash = '#/profile';
-        }, 1000);
+        window.location.hash = '#/profile';
       } catch (error) {
         messageDiv.innerHTML = `<p style="color: red;">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>`;
       }
@@ -68,12 +61,10 @@ export class FormHandlers {
       const maxPlayers = parseInt(formData.get('max_players') as string);
 
       try {
-        const result = await ApiService.createTournament(name, maxPlayers) as { tournament: { id: number } };
-        alert(`Tournament created! Tournament ID: ${result.tournament.id}`);
+        const result = await ApiService.createTournament(name, maxPlayers) as any;
+        alert(`Tournament created! Tournament ID: ${result.id}`);
         form.reset();
-        if ('loadTournamentList' in window && typeof (window as any).loadTournamentList === 'function') {
-          (window as any).loadTournamentList();
-        }
+        (window as any).loadTournamentList();
       } catch (error) {
         alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
@@ -95,9 +86,7 @@ export class FormHandlers {
         await ApiService.joinTournament(tournamentId, alias);
         alert('Successfully joined tournament!');
         form.reset();
-        if ('loadTournamentList' in window && typeof (window as any).loadTournamentList === 'function') {
-          (window as any).loadTournamentList();
-        }
+        (window as any).loadTournamentList();
       } catch (error) {
         alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }

@@ -316,7 +316,7 @@ class TournamentService {
         db.run(
           `UPDATE matches SET
            winner_alias = ?, player1_score = ?, player2_score = ?,
-           status = 'completed'
+           status = 'completed', completed_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
           [winnerAlias, player1Score, player2Score, matchId],
           (err) => {

@@ -26,6 +26,26 @@ TournamentGame.initKeys();
   window.location.hash = '#/';
 };
 
+// Setup token-based tournament join form
+function setupTokenJoinTournamentForm() {
+  const form = document.getElementById('joinTournamentForm') as HTMLFormElement;
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const tournamentId = parseInt(formData.get('tournamentId') as string);
+    const alias = formData.get('alias') as string;
+
+    if (!tournamentId || !alias) {
+      alert('トーナメントIDとエイリアスを入力してください。');
+      return;
+    }
+
+    await TournamentFunctions.joinTournamentWithToken(tournamentId, alias);
+  });
+}
+
 function render() {
   const { path: route, params } = currentRoute();
   console.log("[route]", route);
@@ -69,7 +89,7 @@ function render() {
   } else if (route === "/tournament") {
     app.innerHTML = TournamentUI.generateTournamentPageHTML();
     FormHandlers.setupCreateTournamentForm();
-    FormHandlers.setupJoinTournamentForm();
+    setupTokenJoinTournamentForm();
     TournamentFunctions.loadTournamentList();
   } else if (route === "/profile") {
     // Check if user is logged in

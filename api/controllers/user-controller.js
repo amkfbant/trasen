@@ -25,9 +25,18 @@ class UserController {
       // ログイン時にオンライン状態を更新
       await userService.updateOnlineStatus(user.id, true);
 
+      // JWTトークン生成
+      const jwt = require('jsonwebtoken');
+      const token = jwt.sign(
+        { userId: user.id, username: user.username },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '24h' }
+      );
+
       reply.send({
         message: 'Login successful',
-        user: { id: user.id, username: user.username }
+        user: { id: user.id, username: user.username },
+        token: token
       });
     } catch (error) {
       reply.status(400).send({ error: error.message });
@@ -156,16 +165,21 @@ class UserController {
 
   // 試合履歴取得
   async getMatchHistory(request, reply) {
+    console.log('=== getMatchHistory called ===');
     try {
       const userId = parseInt(request.params.userId);
       const limit = parseInt(request.query.limit) || 20;
 
+      console.log(`Getting match history for userId: ${userId}, limit: ${limit}`);
       const history = await userService.getMatchHistory(userId, limit);
+      console.log(`Match history result:`, history);
+      console.log(`Match history length:`, history?.length);
 
       reply.send({
         match_history: history
       });
     } catch (error) {
+      console.error('Error in getMatchHistory:', error);
       reply.status(400).send({ error: error.message });
     }
   }

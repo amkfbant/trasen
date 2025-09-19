@@ -66,7 +66,7 @@ export class FormHandlers {
 
       try {
         const result = await ApiService.createTournament(name, maxPlayers) as any;
-        alert(`Tournament created! Tournament ID: ${result.id}`);
+        alert(`Tournament created! Tournament ID: ${result.tournament.id}`);
         form.reset();
         (window as any).loadTournamentList();
       } catch (error) {

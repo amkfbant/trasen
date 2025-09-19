@@ -79,14 +79,16 @@ export class TournamentSessionService {
   // トーナメント参加者一覧取得
   static async getTournamentPlayers(tournamentId: number): Promise<any[]> {
     try {
+      console.log('Fetching tournament players for tournament:', tournamentId);
       const response = await fetch(`${this.API_BASE_URL}/tournaments/${tournamentId}/players`);
       const data = await response.json();
+      console.log('Tournament players response:', data);
       
       if (!response.ok) {
         throw new Error(data.error || 'Failed to get tournament players');
       }
 
-      return data.players;
+      return data.players || [];
     } catch (error) {
       console.error('Error getting tournament players:', error);
       throw error;

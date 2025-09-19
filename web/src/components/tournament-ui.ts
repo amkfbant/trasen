@@ -225,9 +225,12 @@ export class TournamentUI {
         </form>
       </div>
 
-      <!-- トーナメント参加フォーム -->
-      <div style="margin-bottom: 30px; padding: 20px; border: 2px solid #ddd; border-radius: 8px;">
-        <h3>トーナメントに参加</h3>
+      <!-- トーナメント参加フォーム（トークン方式） -->
+      <div style="margin-bottom: 30px; padding: 20px; border: 2px solid #007bff; border-radius: 8px; background: #f8f9ff;">
+        <h3>🎮 トーナメントに参加（トークン方式）</h3>
+        <p style="color: #666; margin-bottom: 15px;">
+          アカウント登録なしでも参加可能です。エイリアスを入力してトーナメントに参加しましょう！
+        </p>
         <form id="joinTournamentForm">
           <div style="margin: 10px 0;">
             <label for="tournamentId">トーナメントID:</label><br>
@@ -237,13 +240,20 @@ export class TournamentUI {
           <div style="margin: 10px 0;">
             <label for="playerAlias">プレイヤー名 (エイリアス):</label><br>
             <input type="text" id="playerAlias" name="alias" required
+                   placeholder="例: Player1, ゲーマー太郎"
                    style="padding: 8px; width: 300px; margin-top: 5px;">
           </div>
           <button type="submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px;">
-            参加
+            🚀 トーナメント参加
           </button>
         </form>
       </div>
+
+      <!-- セッション情報表示エリア -->
+      <div id="sessionInfo"></div>
+
+      <!-- 参加者一覧表示エリア -->
+      <div id="tournamentPlayers"></div>
 
       <!-- トーナメント一覧 -->
       <div style="margin-bottom: 30px;">

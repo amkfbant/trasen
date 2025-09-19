@@ -161,20 +161,54 @@ class TournamentSessionService {
   // トーナメント参加者追加
   async addTournamentPlayer(tournamentId, alias, userId = null) {
     return new Promise((resolve, reject) => {
-      const query = `
-        INSERT INTO tournament_players (tournament_id, player_alias, user_id)
-        VALUES (?, ?, ?)
+      // トーナメント情報と参加者数を取得
+      const tournamentQuery = `
+        SELECT t.*, COUNT(tp.id) as current_players
+        FROM tournaments t
+        LEFT JOIN tournament_players tp ON t.id = tp.tournament_id
+        WHERE t.id = ?
+        GROUP BY t.id
       `;
       
-      db.run(query, [tournamentId, alias, userId], function(err) {
+      db.get(tournamentQuery, [tournamentId], (err, tournament) => {
         if (err) {
           reject(err);
+        } else if (!tournament) {
+          reject(new Error('Tournament not found'));
+        } else if (tournament.current_players >= tournament.max_players) {
+          reject(new Error('Tournament is full'));
         } else {
-          resolve({
-            playerId: this.lastID,
-            tournamentId: parseInt(tournamentId),
-            alias,
-            userId
+          // 重複チェック
+          const checkQuery = `
+            SELECT * FROM tournament_players 
+            WHERE tournament_id = ? AND player_alias = ?
+          `;
+          
+          db.get(checkQuery, [tournamentId, alias], (err, existingPlayer) => {
+            if (err) {
+              reject(err);
+            } else if (existingPlayer) {
+              reject(new Error('Alias already taken'));
+            } else {
+              // 参加者追加
+              const insertQuery = `
+                INSERT INTO tournament_players (tournament_id, player_alias, user_id)
+                VALUES (?, ?, ?)
+              `;
+              
+              db.run(insertQuery, [tournamentId, alias, userId], function(err) {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve({
+                    playerId: this.lastID,
+                    tournamentId: parseInt(tournamentId),
+                    alias,
+                    userId
+                  });
+                }
+              });
+            }
           });
         }
       });

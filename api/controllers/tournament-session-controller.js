@@ -15,15 +15,19 @@ class TournamentSessionController {
       // 現在のユーザー情報を取得（ログイン時のみ）
       let userId = null;
       const authHeader = request.headers.authorization;
+      console.log('Auth header:', authHeader);
       if (authHeader && authHeader.startsWith('Bearer ')) {
         try {
           const jwt = require('jsonwebtoken');
           const token = authHeader.substring(7);
+          console.log('Token:', token);
           const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+          console.log('Decoded token:', decoded);
           userId = decoded.userId;
+          console.log('Extracted userId:', userId);
         } catch (error) {
           // 認証エラーは無視（匿名参加を許可）
-          console.log('No valid authentication, proceeding as anonymous');
+          console.log('No valid authentication, proceeding as anonymous:', error.message);
         }
       }
 

@@ -8,8 +8,15 @@ const dbPath = path.join(dataDir, 'ft_transcendence.db');
 
 // データディレクトリが存在しない場合は作成
 if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+  fs.mkdirSync(dataDir, { recursive: true, mode: 0o777 });
   console.log('データディレクトリを作成しました:', dataDir);
+}
+
+// データディレクトリの権限を設定
+try {
+  fs.chmodSync(dataDir, 0o777);
+} catch (err) {
+  console.warn('データディレクトリの権限設定に失敗:', err.message);
 }
 
 // データベース接続
@@ -18,6 +25,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.error('データベース接続エラー:', err.message);
   } else {
     console.log('SQLiteデータベースに接続しました');
+    
+    // データベースファイルの権限を設定
+    try {
+      fs.chmodSync(dbPath, 0o666);
+      console.log('データベースファイルの権限を設定しました');
+    } catch (chmodErr) {
+      console.warn('データベースファイルの権限設定に失敗:', chmodErr.message);
+    }
   }
 });
 
@@ -31,8 +46,12 @@ function initDatabase() {
       password TEXT NOT NULL,
       display_name TEXT,
       avatar_url TEXT,
+      bio TEXT,
       is_online BOOLEAN DEFAULT 0,
       last_active DATETIME,
+      wins INTEGER DEFAULT 0,
+      losses INTEGER DEFAULT 0,
+      total_games INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `, (err) => {
@@ -40,6 +59,32 @@ function initDatabase() {
       console.error('usersテーブル作成エラー:', err.message);
     } else {
       console.log('usersテーブルを作成/確認しました');
+    }
+  });
+
+  // usersテーブルにbioカラムを追加（既存テーブル用）
+  db.run(`ALTER TABLE users ADD COLUMN bio TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('bioカラム追加エラー:', err.message);
+    }
+  });
+
+  // usersテーブルに統計カラムを追加（既存テーブル用）
+  db.run(`ALTER TABLE users ADD COLUMN wins INTEGER DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('winsカラム追加エラー:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE users ADD COLUMN losses INTEGER DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('lossesカラム追加エラー:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE users ADD COLUMN total_games INTEGER DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('total_gamesカラム追加エラー:', err.message);
     }
   });
 
@@ -70,6 +115,7 @@ function initDatabase() {
       name TEXT NOT NULL,
       max_players INTEGER DEFAULT 8,
       status TEXT DEFAULT 'waiting',
+      started_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `, (err) => {
@@ -77,6 +123,13 @@ function initDatabase() {
       console.error('tournamentsテーブル作成エラー:', err.message);
     } else {
       console.log('tournamentsテーブルを作成/確認しました');
+    }
+  });
+
+  // tournamentsテーブルにstarted_atカラムを追加（既存テーブル用）
+  db.run(`ALTER TABLE tournaments ADD COLUMN started_at DATETIME`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('started_atカラム追加エラー:', err.message);
     }
   });
 
@@ -134,6 +187,10 @@ function initDatabase() {
       winner_id INTEGER,
       player1_score INTEGER,
       player2_score INTEGER,
+      round INTEGER DEFAULT 1,
+      match_number INTEGER DEFAULT 1,
+      status TEXT DEFAULT 'pending',
+      completed_at DATETIME,
       played_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (tournament_id) REFERENCES tournaments(id),
       FOREIGN KEY (player1_id) REFERENCES users(id),
@@ -147,6 +204,33 @@ function initDatabase() {
       console.log('matchesテーブルを作成/確認しました');
     }
   });
+
+  // matchesテーブルに必要なカラムを追加（既存テーブル用）
+  db.run(`ALTER TABLE matches ADD COLUMN round INTEGER DEFAULT 1`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('roundカラム追加エラー:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE matches ADD COLUMN match_number INTEGER DEFAULT 1`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('match_numberカラム追加エラー:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE matches ADD COLUMN status TEXT DEFAULT 'pending'`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('statusカラム追加エラー:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE matches ADD COLUMN completed_at DATETIME`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('completed_atカラム追加エラー:', err.message);
+    }
+  });
+
+    // match_historyテーブルは削除済み - matchesテーブルに統一
 }
 
 module.exports = { db, initDatabase };

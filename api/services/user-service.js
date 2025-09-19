@@ -370,24 +370,34 @@ class UserService {
 
   // 試合履歴取得
   async getMatchHistory(userId, limit = 20) {
+    console.log(`UserService.getMatchHistory called with userId: ${userId}, limit: ${limit}`);
     return new Promise((resolve, reject) => {
-      db.all(`
-        SELECT mh.*,
+      const query = `
+        SELECT m.*,
                p1.username as player1_username, p1.display_name as player1_display_name,
                p2.username as player2_username, p2.display_name as player2_display_name,
                w.username as winner_username, w.display_name as winner_display_name,
                t.name as tournament_name
-        FROM match_history mh
-        LEFT JOIN users p1 ON mh.player1_id = p1.id
-        LEFT JOIN users p2 ON mh.player2_id = p2.id
-        LEFT JOIN users w ON mh.winner_id = w.id
-        LEFT JOIN tournaments t ON mh.tournament_id = t.id
-        WHERE mh.player1_id = ? OR mh.player2_id = ?
-        ORDER BY mh.played_at DESC
+        FROM matches m
+        LEFT JOIN users p1 ON m.player1_id = p1.id
+        LEFT JOIN users p2 ON m.player2_id = p2.id
+        LEFT JOIN users w ON m.winner_id = w.id
+        LEFT JOIN tournaments t ON m.tournament_id = t.id
+        WHERE (m.player1_id = ? OR m.player2_id = ?) AND m.status = 'completed'
+        ORDER BY m.completed_at DESC
         LIMIT ?
-      `, [userId, userId, limit], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
+      `;
+      console.log(`Executing query:`, query);
+      console.log(`With parameters:`, [userId, userId, limit]);
+      
+      db.all(query, [userId, userId, limit], (err, rows) => {
+        if (err) {
+          console.error(`Database error in getMatchHistory:`, err);
+          reject(err);
+        } else {
+          console.log(`Query result:`, rows);
+          resolve(rows || []);
+        }
       });
     });
   }
@@ -494,15 +504,14 @@ class UserService {
         if (err) return reject(err);
         if (!userStats) return reject(new Error('User not found'));
 
-        // ゲームタイプ別統計
+        // ゲームタイプ別統計（matchesテーブルから取得）
         db.all(`
-          SELECT game_type,
+          SELECT 'tournament' as game_type,
                  COUNT(*) as games_played,
                  SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as wins,
                  SUM(CASE WHEN winner_id != ? THEN 1 ELSE 0 END) as losses
-          FROM match_history
-          WHERE player1_id = ? OR player2_id = ?
-          GROUP BY game_type
+          FROM matches
+          WHERE (player1_id = ? OR player2_id = ?) AND status = 'completed'
         `, [userId, userId, userId, userId], (err, gameTypeStats) => {
           if (err) return reject(err);
 
@@ -510,10 +519,10 @@ class UserService {
           db.all(`
             SELECT
               CASE WHEN winner_id = ? THEN 1 ELSE 0 END as won,
-              played_at
-            FROM match_history
-            WHERE player1_id = ? OR player2_id = ?
-            ORDER BY played_at DESC
+              completed_at as played_at
+            FROM matches
+            WHERE (player1_id = ? OR player2_id = ?) AND status = 'completed'
+            ORDER BY completed_at DESC
             LIMIT 10
           `, [userId, userId, userId], (err, recentMatches) => {
             if (err) return reject(err);
